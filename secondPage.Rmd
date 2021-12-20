@@ -1,0 +1,21 @@
+---
+title: "otra pagina"
+output: 
+  html_document: 
+    df_print: kable
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+<link rel="stylesheet" href="style.css">
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
+```
+
+## Seccion
+
+fsdfdsfsdfsdf
