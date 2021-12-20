@@ -1,0 +1,53 @@
+
+.section {
+    /* evita que el texto se meta en las anotaciones */
+    clear: right;
+}
+  
+body { /* Normal  */
+font-size: 18px;
+}
+
+b, strong {
+color: #337ab7;
+}
+
+.table {
+font-size: 14px;
+}
+
+.author {
+text-align: right;
+color: #337ab7;
+}
+
+.annot {
+border-left: #337ab7 6px solid;
+background: #ebebeb;
+border-radius: 6px;
+padding: 10px;
+margin-top: 15px;
+margin-bottom: 10px;
+display: inline-block;
+position: right;
+float: right;
+}
+
+.annot strong {
+font-size: 1.3em;
+font-weight: bold;
+color: #337ab7;
+}
+
+h1, h2 {
+text-align: center;
+color: #337ab7;
+margin-top: 30px;
+margin-bottom: 20px;
+}
+
+h3, h4 {
+color: #337ab7;
+margin-top: 30px;
+margin-bottom: 20px;
+}
