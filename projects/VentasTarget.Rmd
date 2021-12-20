@@ -1,0 +1,306 @@
+---
+title: "Análisis de las ventas"
+author: "Manuel Torres Acosta"
+output: html_document
+---
+
+
+<style type="text/css">
+:root {
+  --main-color: #b80200;
+}
+
+.section {
+  /* evita que el texto se meta en las anotaciones */
+  clear: right;
+}
+
+body { /* Normal  */
+  font-size: 18px;
+}
+
+b, strong {
+  color: var(--main-color);
+}
+
+.author {
+  text-align: right;
+  color: var(--main-color);
+}
+
+.annot {
+  border-left: var(--main-color) 6px solid;
+  background: #ebebeb;
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 15px;
+  margin-bottom: 10px;
+  display: inline-block;
+  position: right;
+  float: right;
+}
+
+.annot strong {
+  font-size: 1.3em;
+  font-weight: bold;
+  color: var(--main-color);
+}
+
+h1, h2 {
+  text-align: center;
+  color: var(--main-color);
+}
+
+h3, h4 {
+  color: var(--main-color);
+}
+
+</style>
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+options(OutDec = ",")
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(flexdashboard)
+
+Palette <- c("#b80200", "#696969", "#FF8C00", "#483D8B", "#228B22")
+
+CheckPalette <- function(Palette){
+  plot(NULL, xlim = c(0, length(Palette)), 
+       ylim = c(0,1), 
+     xlab = "", 
+     ylab = "", 
+     xaxt = "n", 
+     yaxt = "n")
+  rect(0:(length(Palette) - 1), 0, 1:length(Palette), 1, col = Palette)
+}
+
+PlotFont <- 22
+
+old_theme <- theme_set(theme_bw())
+
+PlotBackground <- "#ebebeb"
+
+#ggplot theme
+theme_update(text = element_text(size = PlotFont),
+  legend.background = element_rect(colour = "white",
+                                   fill = "white"),
+  plot.background = element_rect(colour = "white",
+                                 fill = "white"),
+  panel.background = element_rect(colour = "white",
+                                   fill = PlotBackground),
+  panel.grid = element_line(colour = "white"),
+  panel.border = element_rect(colour = PlotBackground),
+  axis.title.x = element_blank(),
+  axis.ticks.x = element_blank(),
+  axis.title.y = element_blank(),
+  axis.ticks.y = element_blank())
+
+Directorio <- getwd()
+DirectorioDatos <- "/home/manuel/1.Drive/Archivos/Proyectos/Otros/VentasTarget"
+
+setwd(DirectorioDatos)
+
+Archivos <- list.files(pattern = ".csv$")
+
+Sales <- do.call(rbind, lapply(Archivos, read.csv))
+
+LookupProductsRaw <- read_xlsx("2-5-lookup-tables.xlsx", sheet = "Products")
+
+LookupReps <- read_xlsx("2-5-lookup-tables.xlsx", sheet = "Reps") #Sales agent codes and names
+
+setwd(Directorio) #Data is in memory, return to initial dir
+
+ProductID <- LookupProductsRaw[, 1:4]
+
+CategoryID <- LookupProductsRaw[, 6:7]
+
+CategoryID <- CategoryID[complete.cases(CategoryID), ]
+
+colnames(ProductID)[3] = "CategoryID"
+
+colnames(CategoryID)[1] = "CategoryID"
+
+#Start merging data
+df <- merge(Sales,
+           ProductID,
+           all.x = FALSE,
+           all.y = FALSE,
+           by.x = "Product",
+           by.y = "Product ID")
+
+df <- merge(df,
+            CategoryID,
+            all.x = TRUE,
+            all.y = FALSE,
+            by = "CategoryID")
+
+df <- merge(df,
+            LookupReps,
+            all.x = TRUE,
+            all.y = FALSE,
+            by.x = "SP.ID",
+            by.y = "ID")
+
+df_full <- df #Backup data since we will remove columns
+
+df <- df[c("Sales Rep", "Order.Date", "Units.Sold", "Product.y", "Price", "Category", "Store")]
+colnames(df) <- c("SalesRep", "OrderDate", "UnitsSold", "Product", "Price", "Category", "Store")
+
+# df <- df[is.na(df$Product) == FALSE, ]
+
+df$OrderDate <- as.vector(df$OrderDate)
+
+CleanDate <- function(X){
+  MonthNumeric <- c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
+  for(i in 1:12){
+    X <- gsub(pattern = month.abb[i], replacement = MonthNumeric[i], x = X)
+  }
+  
+  return(X)
+}
+
+df$OrderDate <- CleanDate(df$OrderDate)
+
+df$OrderDate <- as.Date(df$OrderDate, "%d-%m-%y")
+
+df$Month <- format(df$OrderDate, "%Y-%m")
+
+df$ValueSold <- df$UnitsSold * df$Price
+colnames(df) <- c("Vendedor", "FechaPedido", "UnidadesVendidas", "Producto", 
+                  "Precio", "Categoria", "Tienda", "Mes", "ValorVendido")
+
+VentasUnidadesPretty <- format(sum(df$UnidadesVendidas), big.mark = ".", decimal.mark = ",")
+VentasValorPretty <- format(sum(df$ValorVendido), big.mark = ".")
+```
+
+<br>
+
+![](target-logo.png){}
+
+<br>
+
+<div class="annot">
+Éste año se han vendido **`r VentasUnidadesPretty`** productos, por un valor de **`r VentasValorPretty` €**
+
+<p style="text-align:right">Lo cual representa un incremento del **32,4%**</p>
+  
+</div>
+
+### Por producto
+
+El siguiente gráfico recoge el volumen de ventas por categoría.
+
+```{r fig.width=14}
+ValorTotal <- sum(df$ValorVendido)
+
+Pivot <- df %>%
+  group_by(Categoria) %>%
+  summarise(
+    Suma = sum(ValorVendido)
+  )
+
+Pivot$Suma <- round((Pivot$Suma / ValorTotal), 3)
+
+ggplot(Pivot, aes(y = Suma, x = Categoria)) +
+  scale_y_continuous(labels = scales::percent) +
+  geom_bar(position = "dodge", stat = "identity", fill = Palette[1]) +
+  geom_text(aes(label = paste(Suma * 100, "%"), x = Categoria),
+            stat = 'identity', position = position_dodge(0.9),
+            vjust = -0.5, size = PlotFont / 2) +
+  coord_cartesian(ylim = c(0, max(Pivot$Suma) * 1.1))
+```
+
+Vemos que la mayoría de las ventas corresponden a bebidas. A continuación, el porcentaje del total de ventas que representa cada producto.
+
+
+
+```{r fig.width = 14, fig.height = 8}
+ValorTotal <- sum(df$ValorVendido)
+
+Pivot <- df %>%
+  group_by(Producto) %>%
+  summarise(
+    Suma = sum(ValorVendido),
+    Categoria = max(Categoria)
+  ) %>%
+  arrange(desc(Suma))
+
+Pivot$Suma <- round((Pivot$Suma / ValorTotal), 3)
+Pivot$Producto <- factor(Pivot$Producto,
+                         ordered = TRUE,
+                         levels = rev(Pivot$Producto))
+
+ggplot(Pivot, aes(y = Suma, x = Producto, fill = Categoria)) +
+  geom_hline(yintercept = mean(Pivot$Suma), color = Palette[3], size = 2) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(aes(label = paste(Suma * 100, "%"), x = Producto),
+            stat = 'identity',
+            hjust = -0.1,
+            size = PlotFont / 3) +
+  coord_flip(ylim = c(0, max(Pivot$Suma) * 1.1)) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(values = Palette) +
+  theme(axis.text.y = element_text(face = "bold"),
+        legend.position = "top")
+
+SumaTop4 <- sum(Pivot$Suma[1:4]) * 100
+```
+
+<div class="annot">
+Los **4** productos más vendidos acumulan el **`r SumaTop4`%** de las ventas
+</div>
+
+### Por vendedor
+
+El siguiente gráfico representa el porcentaje del total de ventas que se debe a cada vendedor. Dado que hay `r length(unique(df$Vendedor))` vendedores, cada uno debería vender el `r round(100 / length(unique(df$Vendedor)), 1)`% en promedio (línea naranja).
+
+```{r fig.width = 14, fig.height = 10}
+ValorTotal <- sum(df$ValorVendido)
+
+Pivot <- df %>%
+  group_by(Vendedor) %>%
+  summarise(
+    Suma = sum(ValorVendido)
+  ) %>%
+  arrange(desc(Suma))
+
+Pivot$Suma <- round((Pivot$Suma / ValorTotal), 3)
+Pivot$Vendedor <- factor(Pivot$Vendedor,
+                         ordered = TRUE,
+                         levels = rev(Pivot$Vendedor))
+
+ggplot(Pivot, aes(y = Suma, x = Vendedor, fill = rep(c("a", "b"), 2, nrow(Pivot)))) +
+  geom_hline(yintercept = mean(Pivot$Suma), color = Palette[3], size = 2) +
+  geom_bar(position = "dodge", stat = "identity") +
+  geom_text(aes(label = paste(Suma * 100, "%"), x = Vendedor),
+            stat = 'identity',
+            hjust = -0.1,
+            size = PlotFont / 3) +
+  coord_flip(ylim = c(0, max(Pivot$Suma) * 1.1)) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_discrete(type = Palette[1:2],
+    guide = "none") +
+  theme(axis.text.y = element_text(colour = rep(Palette[2:1], 2, nrow(Pivot)),
+                                   face = "bold"))
+VendedoresTop <- Pivot$Suma[Pivot$Suma > mean(Pivot$Suma)]
+```
+
+<div class="annot">
+**`r length(VendedoresTop)`** vendedores son responsables del **`r sum(VendedoresTop) * 100`%** de las ventas
+
+<p style="text-align:right">Hay **`r nrow(Pivot)`** vendedores</p>
+</div>
+
+
+```{r}
+options(OutDec = ".")
+theme_set(old_theme)
+```
+
+<br>

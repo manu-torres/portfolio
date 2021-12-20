@@ -24,8 +24,14 @@ En éste documento se pueden visualizar algunos de los proyectos que he realizad
 
 Durante la carrera tuve mi primer contacto con la programación mediante el **lenguaje R**. En un principio mi interés venía dado por el hecho de que 
 
-[Enlace al informe completo](TFG_MineriaTextoCompleto.html)
+[Enlace al informe completo](projects/TFG_MineriaTextoCompleto.html)
 
 ## Informe de ventas Target
 
-Para practicar algo de css y html, utilicé unos datos ficticios para crear un informe de Ventas con estética de la marca Target. Todos los elementos del informe utilizan los colores de la marca, incluidos los gráficos. Éstos últimos utilizan una paleta de colores personalizada, por lo que se pueden  
+Para practicar algo de css y html, utilicé unos datos ficticios para crear un informe de Ventas con estética de la marca Target. Todos los elementos del informe utilizan los colores de la marca, incluidos los gráficos. Los gráficos utilizan un tema personalizado, por lo que no es necesario definir la estética para cada gráfico.
+
+[Informe](projects/VentasTarget.html)
+
+[Código](projects/VentasTarget.Rmd)
+
+
