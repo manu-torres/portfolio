@@ -1,5 +1,6 @@
 ---
-title: "Titulo"
+title: "Manuel Torres Acosta"
+subtitle: "Psicólogo especializado en el Análisis de Datos"
 output: 
   html_document: 
     df_print: kable
@@ -16,9 +17,13 @@ knitr::opts_chunk$set(echo = FALSE)
 library(knitr)
 ```
 
+En éste documento se resu
+
 ## Seccion
 
-<a href="secondPage.html">Otra página</a>
+
+[TFG](TFG_MineriaTextoCompleto.html)
+
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus accumsan urna id leo ornare interdum. Mauris id accumsan quam. Vestibulum sagittis mi eget pharetra pharetra. Nunc pulvinar porta justo, nec vulputate ex consectetur nec. Morbi vel ante velit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Sed sit amet ligula mattis, ultrices nulla nec, dignissim dui. Praesent ut ullamcorper mi.
 
