@@ -1,15 +1,14 @@
 ---
-title: "Manuel Torres Acosta"
-subtitle: "Psicólogo especializado en el Análisis de Datos"
+title: "Mi portfolio"
+author: "Manuel Torres Acosta"
 output: 
   html_document: 
     df_print: kable
-    toc: true
-    toc_depth: 3
-    toc_float: true
 ---
 
 <link rel="stylesheet" href="style.css">
+
+![](images/logoUCM.jpg)
 
 ```{r setup, include=FALSE}
 rm(list=ls())
@@ -17,14 +16,16 @@ knitr::opts_chunk$set(echo = FALSE)
 library(knitr)
 ```
 
-En éste documento se resu
+<br>
 
-## Seccion
+En éste documento se pueden visualizar algunos de los proyectos que he realizado durante mis estudios o por mi cuenta para ampliar mis habilidades. No se incluyen proyectos de mi vida profesional por cuestiones de confidencialidad.
 
+## Trabajo de fin de grado: Minería de textos
 
-[TFG](TFG_MineriaTextoCompleto.html)
+Durante la carrera tuve mi primer contacto con la programación mediante el **lenguaje R**. En un principio mi interés venía dado por el hecho de que 
 
+[Enlace al informe completo](TFG_MineriaTextoCompleto.html)
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus accumsan urna id leo ornare interdum. Mauris id accumsan quam. Vestibulum sagittis mi eget pharetra pharetra. Nunc pulvinar porta justo, nec vulputate ex consectetur nec. Morbi vel ante velit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Sed sit amet ligula mattis, ultrices nulla nec, dignissim dui. Praesent ut ullamcorper mi.
+## Informe de ventas Target
 
-<p class="annot">Una anotación</p>
+Para practicar algo de css y html, utilicé unos datos ficticios para crear un informe de Ventas con estética de la marca Target. Todos los elementos del informe utilizan los colores de la marca, incluidos los gráficos. Éstos últimos utilizan una paleta de colores personalizada, por lo que se pueden  
