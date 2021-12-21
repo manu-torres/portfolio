@@ -1,0 +1,595 @@
+---
+title: 'Análisis Cotización'
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+<!-- hacemos la fuente mas grande -->
+<style type="text/css">
+
+body{
+  font-size: 18px;
+}
+
+</style>
+
+```{r setup, include=FALSE}
+#Para llamar desde bash: Rscript -e "library(rmarkdown); setwd('/home/manuel/1.Drive/Archivos/ProgramasR'); render('Informe Sistema Operativo.Rmd')"
+rm(list=ls())
+knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
+library(flexdashboard)
+library(DT)
+# library(knitr)
+library(forecast)
+library(DBI)
+library(RSQLite)
+library(quantmod)
+library(plotly)
+library(TTR)
+library(dplyr)
+
+Symbol <- commandArgs(trailingOnly = TRUE)[2]
+
+if(is.na(Symbol)){
+  Symbol = "BA"
+}
+```
+
+```{r, fig.width = 14}
+conn <- dbConnect(SQLite(), "/media/SATAssd/DatosBolsa.sqlite")
+
+Query <- paste("SELECT * FROM Datos WHERE Symbol == '", Symbol, "'",
+               sep = "")
+
+Datos <- dbGetQuery(conn, Query)
+
+FechaActualizacion <- dbGetQuery(conn,
+                                 paste("SELECT Actualizado FROM Registro WHERE Symbol == '", Symbol, "'",
+                                       sep = ""))[1, 1]
+
+NombreEmpresa <- dbGetQuery(conn,
+                            paste("SELECT Descripcion FROM Registro WHERE Symbol == '", Symbol, "'",
+                                  sep = ""))[1, 1]
+
+dbDisconnect(conn) #Cerramos la conexion con la base de datos
+
+NombreEmpresa <- gsub("\n.*", "", NombreEmpresa)
+
+LimiteCaracteres <- 30
+
+if(nchar(NombreEmpresa) > LimiteCaracteres){
+  NombreEmpresa <- paste(substring(NombreEmpresa, 1, LimiteCaracteres), "...", sep = "")
+}
+
+
+if(is.na(NombreEmpresa) == TRUE | NombreEmpresa == ""){
+  NombreEmpresa <- Symbol
+}
+
+Datos <- Datos[Datos$AdjClose > 0, ]
+
+Datos[, 2:6] <- round(Datos[, 2:6], 2)
+
+Serie <- Datos$AdjClose
+
+Fecha <- as.Date(Datos$Date)
+
+HM <- HoltWinters(Serie, 
+                  gamma = FALSE)
+
+predict <- forecast(HM,
+         h = 3)
+
+Predicciones <- predict$mean
+
+Residuos <- ((HM$x - HM$fitted[, 1]) / HM$x) * 100 #HM$fitted[, 1] son los valores pronosticados
+
+t <- 180 #Periodos de la serie para mostrar en los graficos recientes
+
+DatosRecientes <- tail(Datos, t)
+
+ThisYear <- tail(Datos, t * 2)
+
+SerieReciente <- DatosRecientes$AdjClose
+
+VarRSI <- tail(RSI(ThisYear$AdjClose), t)
+
+DatosRecientes$VarRSI <- VarRSI[is.na(VarRSI) == FALSE]
+
+DatosRecientes$ColoresRSI <- rep("violet", length(DatosRecientes$VarRSI))
+DatosRecientes$ColoresRSI <- ifelse(DatosRecientes$VarRSI >= 70, "lightgreen", DatosRecientes$Colores)
+DatosRecientes$ColoresRSI <- ifelse(DatosRecientes$VarRSI <= 30, "red", DatosRecientes$Colores)
+
+Bollinger <- data.frame(tail(BBands(ThisYear$AdjClose), t))
+
+DatosRecientes$MovingAverage <- Bollinger$mavg
+DatosRecientes$LowerBolling <- Bollinger$dn
+DatosRecientes$UpperBolling <- Bollinger$up
+
+n <- nrow(DatosRecientes)
+
+DatosRecientes$PorcentajeSobreMedia <- ((SerieReciente - DatosRecientes$MovingAverage) / DatosRecientes$MovingAverage) * 100
+
+DatosRecientes$MinMax <- ((DatosRecientes$High / DatosRecientes$Low) - 1) * 100
+
+DatosRecientes$PorcentajeCambio <- rep(0, nrow(DatosRecientes))
+DatosRecientes$CierreApert <- rep(3, nrow(DatosRecientes))
+
+for(i in 2:length(SerieReciente)){
+  DatosRecientes$PorcentajeCambio[i] = ((SerieReciente[i] - SerieReciente[i - 1]) / SerieReciente[i]) * 100
+  DatosRecientes$CierreApert[i] <- ((DatosRecientes$Open[i] - DatosRecientes$Close[i - 1]) / DatosRecientes$Open[i]) * 100
+}
+
+DatosRecientes$MinMaxZ <- (DatosRecientes$MinMax - mean(DatosRecientes$MinMax)) / sd(DatosRecientes$MinMax)
+DatosRecientes$SizeVolat <- 12 + (6 * DatosRecientes$MinMaxZ)
+
+DatosRecientes[, c(2:7, 9, 11:17)] <- round(DatosRecientes[, c(2:7, 9, 11:17)], 2)
+```
+
+`r NombreEmpresa` (`r tail(Datos$AdjClose, 1)`)
+====================================
+
+Row 1 {.tabset}
+-----------------------------------------------------------------------
+
+### Bollinger Bands (Gráfico A)
+
+```{r, fig.width = 40, fig.height = 10}
+t <- 30
+
+DatosGrafico <- tail(DatosRecientes, t)
+SerieGrafico <- DatosGrafico$AdjClose
+
+fig <- layout(plot_ly(x = as.Date(DatosGrafico$Date), 
+        y = SerieGrafico, 
+        type = "scatter", 
+        mode = "lines", 
+        line = list(color = "violet"))
+       )
+
+#Banda inferior
+fig <- add_trace(fig,
+                 x = as.Date(DatosGrafico$Date),
+                 y = DatosGrafico$LowerBolling,
+                 mode = "lines",
+                 line = list(color = "yellow"),
+                 showlegend = FALSE,
+                 name = "")
+
+#Banda superior
+fig <- add_trace(fig,
+                 x = as.Date(DatosGrafico$Date),
+                 y = DatosGrafico$UpperBolling,
+                 mode = "lines",
+                 line = list(color = "orange"),
+                 showlegend = FALSE,
+                 name = "")
+
+#Minimo
+fig <- add_trace(fig,
+                 x = as.Date(DatosGrafico$Date),
+                 y = DatosGrafico$Low,
+                 mode = "lines",
+                 line = list(color = "red",
+                             width = 0.75),
+                 showlegend = FALSE,
+                 name = "")
+
+#Maximo
+fig <- add_trace(fig,
+                 x = as.Date(DatosGrafico$Date),
+                 y = DatosGrafico$High,
+                 mode = "lines",
+                 line = list(color = "lightgreen",
+                             width = 0.75),
+                 showlegend = FALSE,
+                 name = "")
+
+#Media movil
+fig <- add_trace(fig,
+                 x = as.Date(DatosGrafico$Date),
+                 y = DatosGrafico$MovingAverage,
+                 mode = "lines",
+                 line = list(color = "blue"),
+                 showlegend = FALSE,
+                 name = "")
+
+#Añadimos la info de cada dia
+fig <- add_trace(fig,
+                 mode = "markers",
+                 x = as.Date(DatosGrafico$Date),
+                 y = SerieGrafico,
+                 marker = list(color = DatosGrafico$ColoresRSI,
+                               size = DatosGrafico$SizeVolat,
+                               line = list(color = DatosGrafico$ColoresRSI),
+                               opacity = 1),
+                 text = paste("RSI: ", DatosGrafico$VarRSI,
+                              "\n% sobre media: ", DatosGrafico$PorcentajeSobreMedia,
+                              "\nCambio del día (%): ", DatosGrafico$PorcentajeCambio,
+                              "\nDist. min/max (%): ", DatosGrafico$MinMax),
+                 showlegend = FALSE,
+                 name = "")
+
+fig
+```
+
+### Velas (Gráfico B)
+
+```{r, fig.width = 40, fig.height = 10}
+fig <- DatosGrafico %>% plot_ly(x = ~Date, type = "candlestick",
+                      open = ~Open, close = ~Close,
+                      high = ~High, low = ~Low,
+                      text = paste("Dist. min/max (%): ", DatosGrafico$MinMax,
+                                   "\nApertura - Cierre (%)", DatosGrafico$CierreApert,
+                                   "\nCambio del día (%): ", DatosGrafico$PorcentajeCambio))
+
+fig <- fig %>% layout(xaxis = list(rangeslider = list(visible = FALSE)))
+
+fig %>% config(displayModeBar = FALSE)
+```
+
+### Pronósticos Holt-Winters (Gráfico C)
+
+```{r, fig.width = 40, fig.height = 10}
+par(mar = c(5,6,4,1) + .1) #Aumentamos el espacio horizontal del grafico para que no recorte la etiqueta Y
+
+#Ajustamos los limites del grafico antes de pintarlo
+Lim <- range(c(SerieGrafico, predict$mean))
+if(max(predict$upper[, 2]) > Lim[2]){
+  Lim[2] = max(predict$upper[, 2])
+}
+if(min(predict$lower[, 2]) < Lim[1]){
+  Lim[1] = min(predict$lower[, 2])
+}
+
+GraficoPronosticos <- c(SerieGrafico, predict$mean)
+
+plot(GraficoPronosticos,
+     type = "l",
+     col = "blue",
+     lwd = 5,
+     ylab = "",
+     xlab = "Tiempo",
+     cex.axis = 2,
+     cex.lab = 2.5,
+     ylim = Lim)
+  lines(c(rep(NA, t), predict$lower[, 2]),
+        col = "red",
+        lwd = 3)
+  lines(c(rep(NA, t), predict$upper[, 2]),
+        col = "green",
+        lwd = 3)
+  abline(h = c(predict$lower[1, 2], tail(Serie, 1), predict$upper[1, 2]),
+          col = c("red", "violet", "green"),
+         lwd = 3)
+  abline(v = t,
+         col = "violet",
+         lwd = 5)
+  points(GraficoPronosticos,
+         col = "blue",
+         pch = 19,
+         cex = 2)
+```
+
+Row 2 {.tabset}
+-----------------------------------------------------------------------
+
+### Introducción
+
+*`r paste("Datos financieros actualizados al", FechaActualizacion)`*
+
+Precio más reciente: `r tail(Datos$AdjClose, 1)`
+
+Máximo de hoy: `r tail(Datos$High, 1)`
+
+Mínimo: `r tail(Datos$Low, 1)`
+
+### RSI
+
+```{r, fig.width = 40, fig.height = 5}
+layout(plot_ly(x = as.Date(tail(DatosGrafico$Date, t)), 
+        y = DatosGrafico$VarRSI, 
+        type = "scatter", 
+        mode = "lines+markers", 
+        line = list(color = "violet"),
+        marker = list(color = DatosGrafico$ColoresRSI,
+                      size = 12))
+       )
+```
+
+6 meses
+====================================
+
+Row 1 {.tabset data-heigth=650}
+-----------------------------------------------------------------------
+
+### Bollinger Bands
+
+```{r, fig.width = 40, fig.height = 10}
+
+DatosGrafico <- DatosRecientes
+
+fig <- layout(plot_ly(x = as.Date(DatosGrafico$Date), 
+        y = DatosGrafico$AdjClose, 
+        type = "scatter", 
+        mode = "lines", 
+        line = list(color = "violet"))
+       )
+
+#Añadimos la info de cada dia
+fig <- add_trace(fig,
+                 mode = "markers",
+                 x = as.Date(DatosGrafico$Date),
+                 y = DatosGrafico$AdjClose,
+                 marker = list(color = DatosGrafico$ColoresRSI,
+                               size = 8,
+                               symbol = ifelse(DatosGrafico$MinMaxZ > 2,
+                                              "hexagram",
+                                              "circle")),
+                 text = paste("RSI: ", DatosGrafico$VarRSI,
+                              "\n% sobre media: ", DatosGrafico$PorcentajeSobreMedia,
+                              "\nCambio del día (%): ", DatosGrafico$PorcentajeCambio,
+                              "\nDist. min/max (%): ", DatosGrafico$MinMax),
+                 showlegend = FALSE,
+                 name = "")
+
+#Banda inferior
+fig <- add_trace(fig,
+                 x = as.Date(DatosGrafico$Date),
+                 y = DatosGrafico$LowerBolling,
+                 mode = "lines",
+                 line = list(color = "yellow"),
+                 showlegend = FALSE,
+                 name = "")
+
+#Banda superior
+fig <- add_trace(fig,
+                 x = as.Date(DatosGrafico$Date),
+                 y = DatosGrafico$UpperBolling,
+                 mode = "lines",
+                 line = list(color = "orange"),
+                 showlegend = FALSE,
+                 name = "")
+
+#Media movil
+fig <- add_trace(fig,
+                 x = as.Date(DatosGrafico$Date),
+                 y = DatosGrafico$MovingAverage,
+                 mode = "lines",
+                 line = list(color = "blue"),
+                 showlegend = FALSE,
+                 name = "")
+
+fig
+
+```
+
+Histórico (desde el `r head(Datos$Date, 1)`)
+====================================
+
+Row 1 {.tabset}
+-----------------------------------------------------------------------
+
+### Todos los datos
+
+```{r, fig.width = 40, fig.height = 5}
+layout(plot_ly(x = as.Date(Datos$Date), 
+        y = Datos$AdjClose, 
+        type = "scatter", 
+        mode = "lines", 
+        line = list(color = "blue"))
+       )
+```
+
+### Burbuja .com
+
+```{r, fig.width = 40, fig.height = 5}
+Crisis <- Datos[grepl("1997|1998|1999|2000|2001", Datos$Date) == TRUE, ]
+
+layout(plot_ly(x = as.Date(Crisis$Date), 
+        y = Crisis$AdjClose, 
+        type = "scatter", 
+        mode = "lines+marker", 
+        line = list(color = "blue"))
+       )
+```
+
+### 11 de Septiembre 2001
+
+```{r, fig.width = 40, fig.height = 5}
+Crisis <- Datos[grepl("2001", Datos$Date) == TRUE, ]
+
+layout(plot_ly(x = as.Date(Crisis$Date), 
+        y = Crisis$AdjClose, 
+        type = "scatter", 
+        mode = "lines+marker", 
+        line = list(color = "blue"))
+       )
+```
+
+### Crisis 2008
+
+```{r, fig.width = 40, fig.height = 5}
+Crisis <- Datos[grepl("2007|2008|2009", Datos$Date) == TRUE, ]
+
+layout(plot_ly(x = as.Date(Crisis$Date), 
+        y = Crisis$AdjClose, 
+        type = "scatter", 
+        mode = "lines+marker", 
+        line = list(color = "blue"))
+       )
+```
+
+### Crisis 2011
+
+```{r, fig.width = 40, fig.height = 5}
+Crisis <- Datos[grepl("2010|2011|2012", Datos$Date) == TRUE, ]
+
+layout(plot_ly(x = as.Date(Crisis$Date), 
+        y = Crisis$AdjClose, 
+        type = "scatter", 
+        mode = "lines", 
+        line = list(color = "blue"))
+       )
+```
+
+### Coronavirus
+
+```{r, fig.width = 40, fig.height = 5}
+Crisis <- Datos[grepl("2020", Datos$Date) == TRUE, ]
+
+layout(plot_ly(x = as.Date(Crisis$Date), 
+        y = Crisis$AdjClose, 
+        type = "scatter", 
+        mode = "lines", 
+        line = list(color = "blue"))
+       )
+```
+
+Dividendos
+====================================
+
+
+Row
+------------------------------------
+
+```{r}
+conn <- dbConnect(SQLite(), "/media/SATAssd/DatosBolsa.sqlite")
+
+Query <- paste("SELECT * FROM Dividendos WHERE Symbol == '", Symbol, "'", sep = "")
+Dividendo <- dbGetQuery(conn, Query)
+
+Query <- paste("SELECT Date, Close FROM Datos WHERE Symbol == '", Symbol, "'", sep = "")
+Precio <- dbGetQuery(conn, Query)
+
+dbDisconnect(conn) #Cerramos la conexion con la base de datos
+
+if((nrow(Dividendo) > 1) & (nrow(Precio) > 1)){
+  Dividendo$Year <- substring(Dividendo$Date, 1, 4)
+  Precio$Year <- substring(Precio$Date, 1, 4)
+  # Precio <- Precio["2020" %in% Dividendo$Year, ]
+  
+  Years <- unique(Dividendo$Year)
+  Precio <- Precio[ifelse(Precio$Year %in% Years, TRUE, FALSE), ]
+
+  ResultadosDividendos <- data.frame(unique(Precio$Year))
+  colnames(ResultadosDividendos) <- "Year"
+  ResultadosDividendos$Precio <- as.vector(round(tapply(Precio$Close, Precio$Year, quantile, 0.25), 2))
+  
+  
+  ResultadosDividendos$Dividendo <- as.vector(round(tapply(Dividendo$Dividends, Dividendo$Year, mean), 2))
+  
+  ResultadosDividendos$nDividendos <- as.vector(round(tapply(Dividendo$Dividends, Dividendo$Year, length), 2))
+  #Para el ultimo año usamos la media de los ultimos años (es posible que no se hayan recibido todos)
+  ResultadosDividendos$nDividendos[length(ResultadosDividendos$nDividendos)] <- round(mean(tail(ResultadosDividendos$nDividendos, 10)), 0)
+  
+  ResultadosDividendos$DividendoYear <- (ResultadosDividendos$Dividendo * ResultadosDividendos$nDividendos)
+  
+  ResultadosDividendos$Yield <- round((ResultadosDividendos$DividendoYear / ResultadosDividendos$Precio) * 100, 2)
+  
+  ResultadosDividendos$Year <- paste(ResultadosDividendos$Year, "-01-01", sep = "")
+  ResultadosDividendos$Year <- as.POSIXct(ResultadosDividendos$Year,
+                                origin = "1970-01-01")
+  ResultadosDividendos$DividendoZ <- (ResultadosDividendos$DividendoYear - mean(ResultadosDividendos$DividendoYear)) / sd(ResultadosDividendos$DividendoYear)
+  ResultadosDividendos$PrecioZ <- (ResultadosDividendos$Precio - mean(ResultadosDividendos$Precio)) / sd(ResultadosDividendos$Precio)
+  ResultadosDividendos$YieldZ <- (ResultadosDividendos$Yield - mean(ResultadosDividendos$Yield)) / sd(ResultadosDividendos$Yield)
+  
+  MediaRendDiv <- paste("(media: ", round(mean(tail(ResultadosDividendos$Yield, 20)), 2), "%)",
+                        sep = "")
+} else {
+  MediaRendDiv <- ""
+}
+```
+
+### Rendimiento del dividendo: `r MediaRendDiv`
+
+```{r}
+if((nrow(Dividendo) > 1) & (nrow(Precio) > 1)){
+  fig <- plot_ly(x = ResultadosDividendos$Year, 
+            y = ResultadosDividendos$DividendoZ, 
+            type = "scatter", 
+            mode = "lines+markers", 
+            line = list(color = "blue"),
+            marker = list(color = "blue"),
+            text = paste(substring(ResultadosDividendos$Year, 1, 4), "\nDividendo:", ResultadosDividendos$DividendoYear),
+            name = "Importe",
+            hoverinfo = "text")
+  
+  fig <- add_trace(fig,
+                   type = "scatter",
+                   mode = "lines+markers",
+                   x = ResultadosDividendos$Year,
+                   y = ResultadosDividendos$PrecioZ,
+                   line = list(color = "red"),
+                   marker = list(color = "red"),
+                   text = paste("Precio:", ResultadosDividendos$Precio),
+                   name = "Precio")
+  
+  fig <- add_trace(fig,
+                   type = "scatter",
+                   mode = "lines+markers",
+                   x = ResultadosDividendos$Year,
+                   y = ResultadosDividendos$YieldZ,
+                   line = list(color = "green"),
+                   marker = list(color = "green"),
+                   text = paste("Rendimiento: ", ResultadosDividendos$Yield, "%", sep = ""),
+                   name = "Rend.")
+  
+  fig <- layout(fig,
+                hovermode = "compare")
+  
+  fig
+  
+}
+```
+
+Row
+------------------------------------
+
+### Pago de dividendos
+
+```{r}
+if((nrow(Dividendo) > 1) & (nrow(Precio) > 1)){
+  Dividendo$DatePOSIX <- as.POSIXct(Dividendo$Date,
+                               origin = "1970-01-01")
+  
+  fig <- plot_ly(x = Dividendo$DatePOSIX, 
+      y = Dividendo$Dividends, 
+      type = "scatter", 
+      mode = "markers",
+      marker = list(color = "blue"),
+      name = "Saldo",
+      text = paste(Dividendo$Date, "|", Dividendo$Dividends),
+      hoverinfo = "text")
+    
+  fig
+}
+```
+
+### Historial de pagos {data-width=150}
+
+```{r, fig.width = 40, fig.height = 5}
+kable(Dividendo %>% 
+        arrange(desc(Date)) %>%
+        select(Date, Dividends))
+```
+
+Datos
+====================================
+
+Hay datos desde el `r head(Datos$Date, 1)`, (`r nrow(Datos)` días). Se muestran los más recientes.
+
+```{r, fig.width = 40, fig.height = 5}
+DatosVer <- tail(Datos, 365)
+DatosVer <- DatosVer[order(DatosVer$Date, decreasing = TRUE), ]
+DatosVer$Symbol <- NULL
+
+TablaResumen <- datatable(DatosVer,
+                          options = list(pageLength = 10,
+                                         bPaginate = FALSE),
+                          autoHideNavigation = TRUE)
+TablaResumen
+```

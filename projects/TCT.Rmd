@@ -1,0 +1,513 @@
+---
+title: "Teoría Clásica de los Tests"
+author: "Manuel Torres Acosta"
+fontfamily: palatino
+output: 
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+    fig_caption: yes
+fontsize: 12pt
+header-includes:
+  - \usepackage{silence}
+  - \WarningsOff
+  - \usepackage[spanish]{babel}
+  - \usepackage{graphicx}
+  - \graphicspath{ {./DatosApuntes/} }
+  - \usepackage{needspace}
+urlcolor: blue
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(warning = FALSE,
+                      message = FALSE,
+                      fig.width = 14)
+knitr::opts_knit$get()
+options(scipen = 999)
+library(knitr)
+library(ggplot2)
+library(reshape2)
+library(foreign)
+library(scales)
+library(CTT)
+library(psych)
+library(ltm)
+library(lavaan)
+
+Palette <- c("#9932CC", "#B22222", "#FF8C00", "#483D8B", "#228B22", "#5555ff")
+PlotFont <- 22
+idxItems <- sort(c(193, 51, 2, 45, 200, 203, 4, 46, 186, 151, 60, 68, 115, 201, 87, 180, 183, 129, 58, 66))
+
+#Las rutas son largas y no quedan bien en el pdf
+Rutas = list(
+  Datos = "/home/manuel/1.Drive/Estudios/MasterMetodologia/Medicion/R/Bases de datos para las tareas de TCT y TRI/INGLES_Datos.sav",
+  Items = "/home/manuel/1.Drive/Estudios/MasterMetodologia/Medicion/R/Bases de datos para las tareas de TCT y TRI/ItemsIngles.csv",
+  CalNum = "/home/manuel/1.Drive/Estudios/MasterMetodologia/Medicion/R/TCT/datos_originales_45ítems.sav"
+)
+```
+
+\vspace{2cm}
+
+# Tarea
+
+La tarea de ésta semana consiste en analizar las propiedades de un instrumento utilizando la Teoría Clásica de los Tests. Hay que seleccionar un conjunto al azar de 20 ítems de la prueba de inglés y presentar los indicadores propios de la teoría.
+
+\newpage
+
+## Selección de los ítems y visualización
+
+Para seleccionar los ítems se utilizo la función sample que genera 20 números aleatorios sin reposición.
+
+Se obtuvieron los siguientes, que se introducirían manualmente en el código:
+
+`r idxItems`
+
+```{r}
+Datos <- read.spss(Rutas$Datos,
+                   to.data.frame = TRUE)
+Datos <- Datos[, idxItems]
+
+#Respuestas correctas a los items 
+#(guarde la tabla del word como csv)
+Items <- read.csv(Rutas$Items,
+                  stringsAsFactors = FALSE)[idxItems, ]
+Respuestas <- Items$Respuesta
+
+
+#Obtenemos las frecuencias de respuesta
+Frecuencias <- as.data.frame(response.frequencies(Datos))
+Frecuencias$miss <- NULL
+Frecuencias$Item <- rownames(Frecuencias)
+
+DatosGrafico <- melt(Frecuencias, id.vars = "Item")
+DatosGrafico$Item <- factor(DatosGrafico$Item,
+                               levels = Frecuencias$Item)
+
+#Visualizamos las frecuencias
+ggplot(DatosGrafico, aes(x = Item, 
+                         y = value, 
+                         fill = variable)) +
+  geom_bar(position = "fill", 
+           stat = "identity") +
+  scale_y_continuous(labels = percent) +
+  ylab("Porcetaje acumulado") +
+  scale_fill_manual(values = Palette) +
+  theme(text = element_text(size = PlotFont / 1.2))
+```
+
+Vemos que los ítems 4, 66, 180 y 200 son demasiado fáciles, ya que la mayoría de la muestra ha seleccionado los valores correctos. Es posible que sean palabras demasiado fáciles o que los distractores no estén funcionando bien.
+
+> *Nota: En el gráfico, el 9 hace referencia a los perdidos.*
+
+## Calificación de los ítems
+
+Conociendo las puntuaciones correctas para cada item, podemos utilizar la función `score()` para obtener una puntuación dicotómica que nos indica si el sujeto acertó el ítem o no.
+
+```{r}
+idxMantener <- !colnames(Datos) %in%
+                 c("V4", "V66", "V180", "V200")
+#Quitamos los items fáciles
+Datos <- Datos[, idxMantener]
+Respuestas <- Respuestas[idxMantener]
+Items <- Items[idxMantener, ]
+Corregidos <- score(Datos, Respuestas,
+                    output.scored = TRUE)
+Temp <- as.data.frame(Corregidos$scored)
+Puntuaciones <- unname(Corregidos$score)
+rownames(Temp) <- names(Corregidos$score)
+Corregidos <- Temp
+```
+
+`Corregidos$scored` nos permitiría ver la matriz que indica si se ha acertado o no cada ítem, mientras que `Corregidos$score` nos muestra las puntuaciones ya calculadas para cada sujeto.
+
+\newpage
+
+## Análisis de los distractores
+
+Podemos utilizar las puntuaciones para crear tres grupos en función del rendimiento.
+
+```{r}
+Corte <- quantile(Puntuaciones, 
+         c(0.33, 0.66))
+Grupos <- rep("", nrow(Datos))
+Grupos[Puntuaciones < Corte[1]] = "Bajo"
+Grupos[Puntuaciones >= Corte[1] & 
+         Puntuaciones < Corte[2]] = "Medio"
+Grupos[Puntuaciones >= Corte[2]] = "Alto"
+GruposFactor <- factor(Grupos,
+                      levels = c("Bajo", "Medio", "Alto"))
+```
+
+A continuación, podemos utilizar éstos grupos para ver el comportamiento de los distractores y de la respuesta correcta.
+
+He decidido crear una función alternativa a `plot.distractors()`, ya que en mi ordenador las leyendas no se muestran correctamente. 
+
+Además, ésta versión permite representar todos los items de un conjunto de datos sin necesidad de escribir los nombres, también acepta un vector con los items a representar. Muestra la palabra a traducir, las opciones y la respuesta correcta en cada gráfico de modo que la interpretación de los patrones de respuesta es más fácil.
+
+En caso de que se le pida que represente más de un item, representa cada uno en un subgráfico para mayor comodidad en la visualización de los datos. 
+
+```{r, fig.height=9.5}
+plot.distractors <- function(data, groups, 
+                             items = "all", 
+                             correct = "none",
+                             itemChoices = "none"){
+  #data: conjunto de datos, debe contener solo los items
+  #items: nombres de columna de items a representar como string
+  #si no se espefica ninguno representa todos los items
+  #groups: vector con grupos de rendimiento, conviene que sea
+  #correct: vector con las respuestas
+  #un factor ordenado para representar en orden los grupos
+  #itemChoices: dataframe con opciones de items en cada columna
+  
+  #Convertimos las variables en factores
+  #De lo contrario table() no aporta los valores correctamente
+  DatosFactor <- lapply(X = data,
+                        FUN = factor,
+                        levels = as.character(c(1:5, 9)))
+  DatosFactor <- as.data.frame(DatosFactor)
+  
+  if(items[1] != "all"){
+    DatosFactor <- data.frame(DatosFactor[, items])
+    colnames(DatosFactor) <- items
+  } else {
+    items <- colnames(DatosFactor)
+  }
+
+  if(length(items) > 1){
+    layout(
+      matrix(c(1, 1, 2, 2, 3, 3, 4, 4),
+             nrow = 2,
+             byrow = TRUE))
+  }
+  
+  TablaPorc <- function(x){
+    Total <- sum(x)
+    round((x / Total) * 100, 2)
+  }
+  
+  for(i in 1:ncol(DatosFactor)){
+    DatosGrafico <- tapply(DatosFactor[, i], 
+                           groups, 
+                           table)
+    
+    DatosGrafico <- lapply(DatosGrafico, TablaPorc)
+    DatosGrafico <- as.data.frame(do.call(rbind, DatosGrafico))
+    
+    if(correct[1] == "none"){
+      Titulo <- colnames(DatosFactor)[i]
+    } else {
+      if(itemChoices[1] != "none"){
+        Titulo <- paste(colnames(DatosFactor)[i], 
+                      "respuesta correcta:", 
+                      itemChoices[i, correct[i]])
+      } else {
+        Titulo <- paste(colnames(DatosFactor)[i], 
+                      "respuesta correcta:", correct[i])
+      }
+      
+    }
+     
+    
+    matplot(DatosGrafico, type = "b",
+            main = Titulo,
+            xlab = "Grupo",
+            ylab = "% de respuesta",
+            col = 1:ncol(DatosGrafico),
+            pch = 1)
+    
+      if(itemChoices[1] == "none"){
+        legend("left", legend = colnames(DatosGrafico),
+             col = 1:ncol(DatosGrafico),
+             pch = 1)
+      } else {
+        legend("left", legend = c(itemChoices[i, ], "NA"),
+             col = 1:ncol(DatosGrafico),
+             pch = 1)
+      }
+      
+  }
+  
+  if(length(items) > 1){
+    par(mfrow = c(1, 1)) #Resetea la disposicion de los graficos
+  }
+}
+
+#Añadimos las preguntas a los nombres de los items para verlas
+#en los graficos
+Temp <- Datos
+colnames(Temp) <- paste(colnames(Temp), "_", Items$Pregunta,
+                        sep = "")
+plot.distractors(Temp, GruposFactor,
+                 correct = Respuestas,
+                 itemChoices = Items[4:ncol(Items)])
+```
+
+Gracias a éstos gráficos podemos ver por ejemplo que en el ítem 2 uno de los distractores acumula una mayor cantidad de respuestas que la opción correcta, lo que nos permite intuir que es un ítem difícil. Además, el porcentaje de respuestas correctas, incluso en los niveles de competencia más altos, es bastante bajo.
+
+Algunos casos similares e incluso más extremos son los de los items 51 o 58.
+
+El ítem 68 también parece bastante difícil, ya que a penas lo aciertan el 50% en el nivel de competencia más alto. Ademas, en los niveles de competencia bajos encontramos que los distractores funcionan de forma más intensa que en los niveles más altos.
+
+Un ítem más fácil para los sujetos competentes podría ser el 87, y seguramente tendrá mayor discriminación. El 80% de los sujetos del grupo de alta competencia lo acierta frente al 20% de los de baja competencia.
+
+Las métricas de discriminación y dificultad se deben explorar mediante otras mediciones más precisas, pero éstos gráficos nos ayudan a presentar la información de forma más visual.
+
+## Consistencia interna
+
+En el paquete CTT tenemos disponible la función `itemAnalysis()`, que nos permite obtener, entre otras cosas, el indicador de consistencia interna alfa de Cronbach. Nos aporta además una tabla que indica el valor del indicador si se quita cada uno de los ítems.
+
+```{r}
+fiabilidad <- itemAnalysis(Corregidos)
+
+#Vemos que items generan un aumento de alfa al quitarlos
+fiabilidad$itemReport[fiabilidad$itemReport$alphaIfDeleted 
+                      > fiabilidad$alpha, ]
+```
+
+El alfa de Cronbach adopta el valor **`r round(fiabilidad$alpha, 2)`**. El indicador tiene un valor de 0.69 si se incluyen los 4 ítems eliminados por ser demasiado fáciles, pero es un incremento modesto comparado con la cantidad de ítems que hay que añadir para conseguirlo. Sería más conveniente coger otros ítems de la base de datos, pero continuemos con los que tenemos hasta la fecha.
+
+Encontramos que tanto el ítem 68, como el 201 hacen que disminuya la consistencia interna, de modo que los retiramos. En ambos casos, al analizar el comportamiento de los distractores encontramos que la cantidad de personas que escogen los distractores decrece conforme aumenta su nivel de competencia, y que la cantidad de personas que seleccionan la opción correcta va aumentando conforme lo hace su competencia. En éste sentido, los ítems no dan la impresión de tener un comportamiento inadecuado.
+
+Sin embargo, presentan unos índices de correlación ítem/test demasiado bajos, por lo que los retiramos de todas formas.
+
+```{r}
+idxMantener <- !colnames(Datos) %in%
+                 c("V68", "V201")
+#Quitamos los items que reducen el alfa
+Datos <- Datos[, idxMantener]
+Respuestas <- Respuestas[idxMantener]
+Items <- Items[idxMantener, ]
+Corregidos <- Corregidos[, idxMantener]
+
+#Repetimos el calculo de alfa
+fiabilidad <- itemAnalysis(Corregidos)
+```
+
+Ahora alfa vale **`r round(fiabilidad$alpha, 4)`**
+
+## Propiedades de los ítems
+
+Podemos presentar las propiedades de los ítems que quedan ordenándolos por su índice de dificultad (la media del ítem, que representa la proporción de sujetos que lo han acertado debido a que está codificado como un 0 para los fallos y un 1 para los aciertos).
+
+```{r}
+PropItems <- fiabilidad$itemReport
+Temp <- PropItems[rev(order(PropItems$itemMean)), ]
+kable(Temp)
+```
+
+Vemos que la información que se extrae intuitivamente de los gráficos sobre la dificultad de los ítems no se traduce necesariamente en los índices de dificultad.
+
+Podemos representar la información sobre el comportamiento de los distractores en tablas
+
+```{r results="asis"}
+Distractores <- distractorAnalysis(Datos, Respuestas)
+for(i in 1:3){
+  print(paste("Tabla del ítem ", Items$Item[i],
+                        ": ", Items$Pregunta[i]))
+  Temp <- Distractores[[i]]
+  Temp[4:ncol(Temp)] <- round(Temp[4:ncol(Temp)], 2)
+  print(kable(Temp))
+  cat("\n")
+}
+```
+
+En la mayoría de los casos vemos que las opciones incorrectas tienen correlaciones negativas con las puntuaciones del instrumento, así como índices de discriminación negativos. Interesa que éstas correlaciones sean altas en valor absoluto y que tengan el signo negativo. Las opciones correctas tienen correlaciones positivas con las puntuaciones.
+
+Si miramos las propiedades de la respuesta correcta podemos ver el índice de dificultad del ítem (rspP), así como el índice de discriminación del ítem (discrim). Para aislarlo, podemos construir una función que procesa la salida de `distractorAnalysis()`.
+
+## Discriminación de los ítems
+
+```{r}
+discrimItem <- function(df){
+  df$discrim[df$correct == "*"]
+}
+
+
+Temp <- sort(sapply(Distractores, discrimItem), 
+             decreasing = TRUE)
+Temp[1:5]
+Temp[6:10]
+Temp[11:length(Temp)]
+```
+
+Gracias a ésta función, podemos observar qué ítems tienen una mayor capacidad de discriminación. Podríamos quedarnos con los $n$ ítems que presenten una mayor discriminación, pero como ya tenemos una cantidad bastante pequeña de ítems mantendremos todos los que tenemos hasta ahora.
+
+## Fiabilidad (técnica de las dos mitades)
+
+```{r}
+#Dividimos el test en dos mitades
+Temp <- 1:ncol(Datos) %% 2 == 0
+
+#Puntuaciones de las mitades
+Mitades <- list(
+  Pares = rowSums(Datos[, Temp]),
+  Impares = rowSums(Datos[, !Temp])
+) 
+FiabilidadMitad <- cor(Mitades$Pares, 
+                       Mitades$Impares)
+```
+
+El coeficiente de fiabilidad para el test mitad vale **`r round(FiabilidadMitad, 2)`**. Tras aplicar la corrección de Spearman Brown para obtener la fiabilidad del test con la longitud original el valor asciende a **`r round(spearman.brown(FiabilidadMitad, 2 , "n")$r.new, 2)`**.
+
+Con éstos datos, si deseamos obtener un coeficiente de fiabilidad de 0.8 necesitamos un total de `r ceiling(ncol(Datos) * spearman.brown(FiabilidadMitad, 0.8, "r")$n.new)` ítems.
+
+## Corrección con penalización del azar
+
+```{r}
+k <- 5 #Numero de opciones de respuesta
+
+Correcion <- data.frame(
+  Aciertos = rowSums(Corregidos),
+  Omisiones = rowSums(Datos == 9)
+)
+
+Correcion$Errores <- ncol(Datos) - Correcion$Aciertos - 
+  Correcion$Omisiones
+
+Correcion$PuntCorreg <- Correcion$Aciertos - ((1 / (k - 1)) * 
+                        Correcion$Errores)
+```
+
+A continuación, podemos representar las puntuaciones en un diagrama de puntos.
+
+```{r, fig.height=10}
+ggplot(Correcion, aes(x = Aciertos, y = PuntCorreg)) +
+  geom_point(alpha = 0.1, 
+             size = 2, 
+             color = "darkblue") +
+  geom_point(x = Correcion$Aciertos, y = Correcion$Aciertos,
+             color = "red") +
+  xlab("Puntuación original") +
+  ylab("Puntuación con penalización de azar") +
+  theme(text = element_text(size = PlotFont))
+```
+
+En el gráfico los puntos azules representan los valores para la puntuación original VS la puntuación corregida. 
+
+Se ha añadido además una línea de puntos roja que representa la puntuación original (es decir la línea roja sería la puntuación original contra sí misma). Ésta línea roja nos permite apreciar que las puntuaciones corregidas son siempre inferiores a las originales.
+
+Además, la diferencia entre la puntuación con corrección al azar y la original es mayor en los niveles de competencia más bajos. Ésto es así dado que los sujetos con un menor nivel de competencia deben una mayor proporción de sus respuestas correctas al azar.
+
+\newpage
+
+En el siguiente gráfico, podemos ver la distribución de ambas puntuaciones. Las puntuaciones originales aparecen representadas en naranja, y su media es la barra vertical roja. Las puntuaciones con corrección por azar están representadas en morado, y su media por la barra vertical roja.
+
+```{r}
+ggplot() +
+  geom_histogram(aes(Correcion$Aciertos), 
+                 bins = 20, fill = Palette[3], alpha = 0.8) +
+  geom_histogram(aes(Correcion$PuntCorreg), 
+                 bins = 20, fill = Palette[1], alpha = 0.8) +
+  geom_vline(xintercept = mean(Correcion$Aciertos), 
+             color = Palette[2], size = 3) +
+  geom_vline(xintercept = mean(Correcion$PuntCorreg), 
+             color = Palette[4], size = 3) +
+  xlab("Distribución de las puntuaciones") +
+  ylab("Recuento") +
+  theme(text = element_text(size = PlotFont))
+```
+
+La correlación entre ambas puntuaciones es muy alta: `r round(cor(Correcion$Aciertos, Correcion$PuntCorreg), 4)`
+
+\newpage
+
+# Tarea voluntaria
+
+## Corrección del azar alternativa
+
+```{r}
+#Aplicamos una correccion del azar alternativa
+Correcion$PuntCorreg2 <- Correcion$Aciertos + 
+  (Correcion$Omisiones / k)
+```
+
+Comparamos las puntuaciones con las correciones por azar realizadas mediante ambos métodos. En éste caso, los puntos rojos representan la puntuación con la primera corrección del azar contra sí misma, mientras que los puntos azules representan ambas correcciones una contra la otra.
+
+```{r, fig.height=10}
+ggplot(Correcion, aes(x = PuntCorreg, y = PuntCorreg2)) +
+  geom_point(alpha = 0.1, 
+             size = 2, 
+             color = "darkblue") +
+  geom_point(x = Correcion$PuntCorreg, y = Correcion$PuntCorreg,
+             color = "red") +
+  xlab("Corrección azar estándar") +
+  ylab("Corrección azar alternativa") +
+  theme(text = element_text(size = PlotFont))
+```
+
+Ésta nueva forma de corregir por azar beneficia más a los sujetos con un nivel de competencia más bajo, ya que no penaliza los errores. A medida que aumenta el nivel de competencia, la distancia entre ambas puntuaciones se reduce.
+
+En éste histograma tenemos la primera corrección en naranja (su media en rojo), y la segunda en morado (media en azul).
+
+```{r}
+ggplot() +
+  geom_histogram(aes(Correcion$PuntCorreg), 
+                 bins = 20, fill = Palette[3], alpha = 0.8) +
+  geom_histogram(aes(Correcion$PuntCorreg2), 
+                 bins = 20, fill = Palette[1], alpha = 0.8) +
+  geom_vline(xintercept = mean(Correcion$PuntCorreg), 
+             color = Palette[2], size = 3) +
+  geom_vline(xintercept = mean(Correcion$PuntCorreg2), 
+             color = Palette[4], size = 3) +
+  xlab("Distribución de las puntuaciones") +
+  ylab("Recuento") +
+  theme(text = element_text(size = PlotFont))
+```
+
+Claramente, podemos ver que la nueva corrección tiende a generar puntuaciones más altas aunque su distribución es similar. La correlación entre ambas es casi perfecta.
+
+Podemos representar todas las puntuaciones en un diagrama de caja y bigotes. Aciertos representa las puntuaciones sin corrección del azar (suma de los aciertos). PuntCorreg representa la primera corrección del azar, mientras que PuntCorreg2 representa la segunda
+
+```{r fig.width=14, fig.height=7}
+DatosGrafico <- Correcion
+DatosGrafico[, c("Omisiones", "Errores")] <- NULL
+DatosGrafico$Sujeto <- rownames(DatosGrafico)
+DatosGrafico <- reshape2::melt(DatosGrafico, id.vars = "Sujeto")
+
+ggplot(DatosGrafico, aes(fill = variable, y = value)) +
+  geom_boxplot(alpha = 0.5) +
+  scale_fill_manual(values = Palette) +
+  theme(text = element_text(size = 20))
+```
+
+Podemos ver que la segunda corrección del azar genera unas puntuaciones con una distribución más semejante a la de las puntuaciones originales, y que la primera corrección del azar presenta una mayor distancia entre los percentiles 25 y 75, por lo que hay más dispersión en las puntuaciones.
+
+## Mediciones adicionales de fiabilidad
+
+El paquete psych nos ofrece la posibilidad de explorar otras métricas para evaluar la fiabilidad del test. Las aplicamos sobre los datos de cálculo numérico.
+
+```{r}
+Datos <- read.spss(Rutas$CalNum,
+                   to.data.frame = TRUE)
+Datos <- Datos[, 15:29]
+
+Respuestas <- c(3, 1, 3, 4, 4, 2, 4, 4, 3, 4, 4, 3, 3, 3, 1)
+Corregidos <- score(Datos, Respuestas, 
+                    output.scored = TRUE)
+Corregidos <- Corregidos$scored
+
+splitHalf(Corregidos)
+```
+
+Además, el paquete ltm nos permite construir unos intervalos de confianza en torno a los valores de alfa.
+
+```{r}
+res <- cronbach.alpha(Corregidos, 
+                      CI = TRUE)
+res
+```
+
+En determinadas situaciones el coeficiente alfa puede no ser del todo preciso. Una alternativa es el coeficiente omega, que se puede obtener combinando los paquetes lavaan y semTools.
+
+```{r include=FALSE}
+mod1f <- "F1 =~ I15 + I16 + I17 + I18 + I19 + I20 + I21 + I22 + I23 + I24 + I25 + I26 + I27 + I28 + I29"
+```
+
+```{r}
+fit1f <- cfa(mod1f,
+             data = Corregidos)
+semTools::reliability(fit1f)
+```

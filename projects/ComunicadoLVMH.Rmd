@@ -1,0 +1,121 @@
+---
+title: "LVMH completes the acquisition of Tiffany & Co."
+date: "January 7, 2021"
+output:
+  html_document:
+    highlight: null
+    mathjax: null
+toc-title: "Sections"
+editor_options: 
+  chunk_output_type: console
+---
+
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;1,300&display=swap" rel="stylesheet">
+
+<style type="text/css">
+body { /* Normal  */
+  font-family: 'Merriweather', serif;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 300;
+  background-color: #f4eeea;
+  margin-top: 50px;
+  margin-bottom: 50px;
+}
+
+h1 {
+  font-size: 38px;
+}
+
+h1, h2, h3 {
+  margin-top: 25px;
+  font-family: 'Merriweather', serif;
+  font-weight: 300;
+}
+
+.main-container {
+  background: #ffffff;
+  padding-right: 10%;
+  padding-left: 10%;
+  padding-top: 50px;
+  padding-bottom: 50px;
+  max-width: 940px;
+}
+
+h1 {
+  text-align: center;
+}
+
+h2 {
+  margin-top: 40px;
+  margin-bottom: 20px;
+}
+
+img {
+  max-width: 100%;
+}
+
+.date {
+  font-style: italic;
+  text-align: center;
+}
+
+</style>
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+library(dplyr)
+library(ggplot2)
+
+Palette <- c("#1b1e39", "#f4eeea")
+PlotFont <- 16
+
+Datos <- read.csv("/home/manuel/1.Drive/Archivos/Proyectos/Otros/LVMH/StockTIF.csv")
+
+Datos$Year <- substring(Datos$Date, 1, 4)
+
+Pivot <- Datos %>% 
+  group_by(Year) %>% 
+  summarise(Valor = mean(AdjClose)) %>% 
+  tail(10)
+```
+
+<br>
+
+LVMH Moët Hennessy Louis Vuitton SE, the world’s leading luxury products group, announced today that it has completed the acquisition of Tiffany & Co. (NYSE: TIF), the global luxury jeweler. The acquisition of this iconic US jeweler will deeply transform LVMH’s Watches & Jewelry division and complement LVMH’s 75 distinguished Maisons.
+
+Bernard Arnault, Chairman and Chief Executive Officer of LVMH, commented: *“I am pleased to welcome Tiffany and all their talented employees in our Group. Tiffany is an iconic brand and a quintessential emblem of the global jewelry sector. We are committed to supporting Tiffany, a brand that is synonymous with love and whose Blue Box is revered around the world, with the same dedication and passion that we have applied to each of our prestigious Maisons over the years. We are optimistic about Tiffany’s ability to accelerate its growth, innovate and remain at the forefront of our discerning customers’ most cherished life achievements and memories. I would like to thank Alessandro Bogliolo and his team for their dedication to Tiffany and their work over the past three years, especially during this challenging period.”*
+
+## Tiffany Executive Leadership
+
+In conjunction with the closing of the transaction, LVMH has announced several leadership appointments at Tiffany:
+
+- Anthony Ledru, previously Executive Vice President, Global Commercial Activities at Louis Vuitton and formerly Senior Vice President of North America at Tiffany, becomes Chief Executive Officer of Tiffany, effective immediately.
+- Alexandre Arnault, previously Chief Executive Officer of high-quality luggage company RIMOWA, becomes Executive Vice President, Product and Communications of Tiffany, effective immediately.
+- Michael Burke, the Chairman and Chief Executive Officer of Louis Vuitton, will become Chairman of Tiffany Board of Directors.
+
+## Stock performance
+
+During the merge, a tender offer around 131 dollars was established to acquire the necessary stock.
+
+```{r fig.width=14}
+ggplot(Pivot, aes(y = Valor, x = Year)) +
+  geom_bar(fill = Palette[1], position = "dodge", stat = "identity") +
+  geom_text(aes(label = round(Valor, 2)), vjust = -0.5, size = PlotFont / 2) +
+  coord_cartesian(ylim = c(min(Pivot$Valor) * 0.95, max(Pivot$Valor) * 1.05)) +
+  xlab("Year") +
+  ylab("Average price") +
+  theme(text = element_text(size = PlotFont),
+        panel.background = element_rect(fill = "white",
+                                colour = "white",
+                                size = 0.5, 
+                                linetype = "solid"),
+        panel.grid.major = element_line(colour = Palette[1],
+                                        size = 0.1))
+```
+
+<br>
