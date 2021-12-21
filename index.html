@@ -427,20 +427,28 @@ max-width: 100%;
 <p><br></p>
 <p>En éste documento se pueden visualizar algunos de los proyectos que he realizado durante mis estudios o por mi cuenta para ampliar mis habilidades. No se incluyen proyectos de mi vida profesional por cuestiones de confidencialidad.</p>
 <p>Para cada uno de los proyectos hay un enlace para visualizar el informe completo. Para algunos, hay también un enlace para ver el código que genera el informe (archivos .Rmd). En otros informes, el código se muestra en el propio documento.</p>
+<p class="annot">
+Se recomienda abrir los informes en una pestaña nueva
+</p>
 <div id="trabajo-de-fin-de-grado-minería-de-textos" class="section level2">
 <h2>Trabajo de fin de grado: Minería de textos</h2>
 <p>Realicé mi TFG sobre el <strong>análisis bibliométrico en psicología</strong>, obteniendo en el mismo la máxima calificación. El objetivo del proyecto era estudiar la evolución de la investigación en psicología a partir de los datos disponibles de forma libre en <a href="https://www.scopus.com/">Scopus</a>, una base de datos de artículos científicos.</p>
 <p>Para ello, en primer lugar tenía que descargar los artículos de la base de datos, lo que implicaba interactuar con la API. Ésta tarea la desarrollé en <strong>python</strong>, ya que ofrece más facilidades para capturar excepciones y errores. Además, python tiene mejor soporte para trabajar con ficheros json ya que uno de sus tipos nativos (el diccionario) se ajusta muy bien a ésta estructura de datos.</p>
 <p>Los datos se almacenaban en una base de datos de <strong>SQLite</strong>, que resultó ser perfecta para el proyecto. A pesar de que la base de datos contiene más de <strong>150.000</strong> artículos el rendimiento es excelente.</p>
-<p>El análisis de los datos lo realicé con <strong>R</strong>, presentando los resultados en un informe de R markdown. Realicé un análisis descriptivo muy completo mediante gráficos interactivos, además probé varias técnicas de clusterización para ver si se podían realizar clasificaciones de los artículos de forma automática. También, desarrollé un método que a partir de unas métricas de similaridad permite crear redes temáticas.</p>
+<p>El análisis de los datos lo realicé con <strong>R</strong>, presentando los resultados en un informe de R markdown. Realicé un análisis descriptivo muy completo mediante <strong>gráficos interactivos</strong>, además probé varias técnicas de clusterización para ver si se podían realizar clasificaciones de los artículos de forma automática. También, desarrollé un método que a partir de unas métricas de similaridad permite crear redes temáticas.</p>
 <p><a href="projects/TFG_MineriaTextoCompleto.html">Informe completo</a></p>
 </div>
 <div id="informe-de-ventas-target" class="section level2">
 <h2>Informe de ventas Target</h2>
-<p>Para practicar algo de css y html, utilicé unos datos ficticios para crear un informe de Ventas con estética de la marca Target. Todos los elementos del informe utilizan los colores de la marca, incluidos los gráficos. Los gráficos utilizan un tema personalizado, por lo que no es necesario definir la estética para cada gráfico.</p>
+<p>PUtilicé unos datos ficticios para crear un informe de Ventas con estética de la marca Target. Todos los elementos del informe utilizan los colores de la marca, incluidos los gráficos. Los gráficos utilizan un tema personalizado, por lo que no es necesario definir la estética para cada uno</p>
 <p>En el informe encontramos algunos gráficos de barras de <strong>ggplot</strong> que muestran los datos en porcentaje. En los dos últimos gráficos hay muchas categorías representadas, de modo que para mejorar la legibilidad las barras se presentan de forma horizontal y se ordenan de menor a mayor.</p>
 <p><a href="projects/VentasTarget.html">Informe</a></p>
 <p><a href="https://github.com/manu-torres/portfolio/blob/main/projects/VentasTarget.Rmd">Código</a></p>
+</div>
+<div id="práctica-tct" class="section level2">
+<h2>Práctica TCT</h2>
+<p>Una práctica del máster sobre la Teoría Clásica de los Tests.</p>
+<p><a href="projects/TCT.pdf">Informe en PDF</a></p>
 <p><br></p>
 <p><br></p>
 </div>
