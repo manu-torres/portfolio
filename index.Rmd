@@ -20,6 +20,8 @@ library(knitr)
 
 En éste documento se pueden visualizar algunos de los proyectos que he realizado durante mis estudios o por mi cuenta para ampliar mis habilidades. No se incluyen proyectos de mi vida profesional por cuestiones de confidencialidad.
 
+Para cada uno de los proyectos hay un enlace para visualizar el informe completo. Para algunos, hay también un enlace para ver el código que genera el informe (archivos .Rmd). En otros informes, el código se muestra en el propio documento.
+
 ## Trabajo de fin de grado: Minería de textos
 
 Durante la carrera tuve mi primer contacto con la programación mediante el **lenguaje R**. En un principio mi interés venía dado por el hecho de que 
