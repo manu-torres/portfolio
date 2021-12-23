@@ -26,6 +26,8 @@ En éste documento se pueden visualizar algunos de los proyectos que he realizad
 
 ### Trabajo de fin de grado: Minería de textos
 
+![](images/wordcloudKeywords.png)
+
 Realicé mi TFG sobre el **análisis bibliométrico en psicología**, obteniendo en el mismo la máxima calificación. El objetivo del proyecto era estudiar la evolución de la investigación en psicología a partir de los datos disponibles de forma libre en [Scopus](https://www.scopus.com/), una base de datos de artículos científicos.
 
 Para ello, en primer lugar tenía que descargar los artículos de la base de datos, lo que implicaba interactuar con la API. Ésta tarea la desarrollé en **python**, ya que ofrece más facilidades para capturar excepciones y errores. Además, python tiene mejor soporte para trabajar con ficheros json ya que uno de sus tipos nativos (el diccionario) se ajusta muy bien a ésta estructura de datos.
@@ -33,6 +35,8 @@ Para ello, en primer lugar tenía que descargar los artículos de la base de dat
 Los datos se almacenaban en una base de datos de **SQLite**, que resultó ser perfecta para el proyecto.
 
 El análisis de los datos lo realicé con **R**, presentando los resultados en un informe de R markdown. Realicé un análisis descriptivo muy completo mediante **gráficos interactivos**, además probé varias técnicas de clusterización para ver si se podían realizar clasificaciones de los artículos de forma automática. También, desarrollé un método que a partir de unas métricas de similaridad permite crear redes temáticas.
+
+![](images/KeywordNet.png)
 
 [Informe completo](projects/TFG_MineriaTextoCompleto.html), click  [aquí](projects/TFG_MineriaTextoCompleto.html#Resultados) para ir directamente a los resultados, en donde se pueden ver los gráficos.
 
@@ -52,7 +56,10 @@ Una práctica del máster sobre la Teoría Clásica de los Tests.
 
 Dos prácticas relacionadas con la Teoría de Respuesta al Ítem.
 
+
 [Ítems dicotómicos (PDF)](projects/TRI_DICO.pdf). En éste informe se aplica un modelo para ítems con dos opciones de respuesta (acierto/fallo).
+
+![](images/testReliability.png)
 
 [Ítems politómicos (PDF)](projects/TRI_POLI.pdf). En éste informe se aplica un modelo para ítems con varias opciones de respuesta (una escala graduada).
 
@@ -65,6 +72,8 @@ Utilicé unos datos ficticios para crear un informe de Ventas con estética de l
 [Informe](projects/VentasTarget.html), [Código](https://github.com/manu-torres/portfolio/blob/main/projects/VentasTarget.Rmd)
 
 ### Comunicado para accionistas LVMH
+
+![](images/reportLVMH.png)
 
 En la página del grupo Louis Vuitton encontré un comunicado para accionistas, y me gustó la estética de la página. Por tanto, intenté replicar la estética del documento utilizando **HTML** y **CSS**.
 
