@@ -1,11 +1,11 @@
 ---
-title: "Mi portfolio"
-author: "Manuel Torres Acosta"
+title: "Manuel Torres Acosta"
+subtitle: "Mi portfolio"
 output: 
   html_document: 
     df_print: kable
     toc: TRUE
-    toc_depth: 4
+    toc_depth: 3
 ---
 
 <link rel="stylesheet" href="style.css">
@@ -39,6 +39,7 @@ El análisis de los datos lo realicé con **R**, presentando los resultados en u
 ![](images/KeywordNet.png)
 
 [Informe completo](projects/TFG_MineriaTextoCompleto.html), click  [aquí](projects/TFG_MineriaTextoCompleto.html#Resultados) para ir directamente a los resultados, en donde se pueden ver los gráficos.
+
 
 ### Práctica Escalamiento Multidimensional
 
