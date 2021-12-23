@@ -1,0 +1,260 @@
+---
+title: "TRI: modelos politómicos"
+author: "Manuel Torres Acosta"
+fontfamily: palatino
+output: 
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    fig_caption: yes
+fontsize: 12pt
+header-includes:
+  - \usepackage{silence}
+  - \WarningsOff
+  - \usepackage[spanish]{babel}
+  - \usepackage{graphicx}
+  - \usepackage{needspace}
+urlcolor: blue
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(warning = FALSE,
+                      message = FALSE,
+                      fig.width = 14,
+                      fig.height = 6)
+options(scipen = 999)
+library(knitr)
+library(ltm)
+library(foreign)
+library(psych)
+library(CTT)
+library(ggplot2)
+library(reshape2)
+
+Palette <- c("#9932CC", "#B22222", "#FF8C00", "#483D8B", "#228B22", "#5555ff")
+PlotFont <- 22
+idxItems <- c(1, 2, 3, 4, 6, 8, 9, 10, 11, 12)
+
+#Las rutas son largas y no quedan bien en el pdf
+Rutas = list(
+  Datos = "/home/manuel/1.Drive/Estudios/MasterMetodologia/Medicion/R/Bases de datos para las tareas de TCT y TRI/NEU_Datos.sav"
+)
+
+```
+
+\vspace{2cm}
+
+# Tarea
+
+La tarea de ésta semana consiste en estudiar las propiedades de un test a través de la TCT y de un modelo politómico de TRI.
+
+\newpage
+
+## Visualización de las respuestas
+
+Ítems: `r idxItems`
+
+```{r}
+Datos <- read.spss(Rutas$Datos,
+                   to.data.frame = TRUE)
+Datos <- Datos[, idxItems]
+
+#Quitamos los perdidos
+Datos <- Datos[rowSums(Datos == 9) == 0, ]
+
+#Obtenemos las frecuencias de respuesta
+Frecuencias <- as.data.frame(response.frequencies(Datos))
+Frecuencias$miss <- NULL
+Frecuencias$Item <- rownames(Frecuencias)
+
+DatosGrafico <- melt(Frecuencias, id.vars = "Item")
+DatosGrafico$Item <- factor(DatosGrafico$Item,
+                               levels = Frecuencias$Item)
+
+#Visualizamos las frecuencias
+ggplot(DatosGrafico, aes(x = Item, 
+                         y = value, 
+                         fill = variable)) +
+  geom_bar(position = "fill", 
+           stat = "identity") +
+  ylab("Porcetaje acumulado") +
+  scale_fill_manual(values = Palette) +
+  guides(fill=guide_legend(title = "Respuesta")) +
+  theme(text = element_text(size = PlotFont / 1.2))
+```
+
+# Teoría Clásica de los Tests
+
+## Consistencia interna
+
+Utilizamos la función `itemAnalysis()` para obtener el alfa de Cronbach y el efecto de los ítems sobre el mismo. También podemos utilizar el análisis paralelo para determinar si existe una única dimensión y hacer un análisis factorial para comprobarlo.
+
+```{r, results=FALSE}
+fiabilidad <- itemAnalysis(Datos)
+
+fa.parallel(Datos, fa = "pc")
+
+Factor1 <- fa(Datos,
+              fm = "uls")
+Temp <- data.frame(unclass(Factor1$loadings), 
+                   h2 = Factor1$communalities, 
+                   u2 = Factor1$uniqueness)
+Temp <- Temp[rev(order(Temp$ULS1)), ]
+```
+
+En nuestro caso, todos los ítems contribuyen al aumento de alfa, y el indicador adopta el valor `r round(fiabilidad$alpha, 3)`.
+
+El análisis paralelo indica claramente que en nuestros datos solo existe una dimensión. 
+
+\newpage
+
+Además, como podemos ver en la siguiente tabla, todas las comunalidades son suficientemente altas, y las correlaciones adecuadas.
+
+```{r}
+PropItems <- fiabilidad$itemReport
+PropItems$PesoFactorial <- Temp$ULS1
+kable(PropItems)
+```
+
+Con todos éstos datos podemos concluir que existe unidimensionalidad en nuestro test y que todos los ítems contribuyen a dicha dimensión.
+
+\newpage
+
+## Fiabilidad (técnica de las dos mitades)
+
+```{r}
+#Dividimos el test en dos mitades
+Temp <- 1:ncol(Datos) %% 2 == 0
+
+#Puntuaciones de las mitades
+Mitades <- list(
+  Pares = rowSums(Datos[, Temp]),
+  Impares = rowSums(Datos[, !Temp])
+) 
+FiabilidadMitad <- cor(Mitades$Pares, 
+                       Mitades$Impares)
+FiabilidadTotal <- spearman.brown(FiabilidadMitad, 2 , "n")$r.new
+```
+
+El coeficiente de fiabilidad para el test mitad vale **`r round(FiabilidadMitad, 2)`**. Tras aplicar la corrección de Spearman Brown para obtener la fiabilidad del test con la longitud original el valor asciende a **`r round(FiabilidadTotal, 2)`**.
+
+Con éstos datos, si deseamos obtener un coeficiente de fiabilidad de 0.9 necesitamos un total de `r ceiling(ncol(Datos) * spearman.brown(FiabilidadTotal, 0.9, "r")$n.new)` ítems.
+
+\newpage
+
+# Teoría de Respuesta al Ítem
+
+Dado que se cumple el supuesto de unidimensionalidad, podemos ajustar los modelos politómicos de la TRI. 
+
+Para ello debemos tener cuidado de que en todos los ítems no queden categorías sin respuestas. Si ocurriese ésto tendríamos que recodificar las categorías siguientes para hacer como si no existiese la que no ha tenido respuesta ^[Ejemplo: falta la categoría 4 en una escala de 1-7, las categorías 5, 6, 7 pasarían a ser 4, 5, 6].
+
+```{r}
+fit1 <- grm(Datos)
+
+layout(
+  matrix(c(1, 1, 1, 1, 2, 2, 2, 2),
+  nrow = 2,
+  byrow = FALSE)
+)
+
+for(i in 1:ncol(Datos)){
+  plot(fit1, items = i,
+       main = paste("Curva característica ítem", 
+                    colnames(Datos)[i]),
+       cex = 2.5)
+  plot(fit1, type = "IIC", items = i,
+       main = paste("Función de información del ítem", 
+                    colnames(Datos)[i]))
+}
+```
+
+\newpage
+
+El modelo también nos permite visualizar las curvas características operantes para cada ítem, pasándole el parámetro `type = 'OCCu'` a la función plot, pero no lo haremos por cuestiones de espacio. Podemos representar la función de información del test completo.
+
+```{r echo=FALSE}
+par(mfrow = c(1, 1))
+plot(fit1, type = "IIC", items = 0)
+```
+
+\newpage
+
+## Estimación de las puntuaciones
+
+```{r}
+Zest <- factor.scores.grm(object = fit1,
+                                  resp.patterns = Datos)
+Zest <- Zest$score.dat
+Zest <- Zest[, c("z1", "se.z1")]
+colnames(Zest) <- c("Z", "SE")
+```
+
+En el siguiente gráfico podemos ver cómo varía el error de medición en función del nivel de competencia (rasgo) de los sujetos. Podemos ver que la precisión es mayor para valores de competencia medios, pero en todo el rango de niveles obtenemos valores aceptables.
+
+```{r echo=FALSE}
+#Representamos las puntuaciones y el error asociado
+ggplot(Zest, aes(x = Z, y = SE)) +
+  geom_point(alpha = 0.2, 
+             size = 2, 
+             color = "darkblue") +
+  geom_smooth() +
+  xlab("Nivel de competencia (theta)") +
+  ylab("Error de estimación estandarizado") +
+  geom_hline(yintercept = 0.3, color = "orange") +
+  geom_hline(yintercept = 0.5, color = "red") +
+  theme(text = element_text(size = PlotFont))
+```
+
+También podemos construir intervalos de confianza al 95% entorno a las puntuaciones.
+
+```{r echo=FALSE}
+Zest$LimInf <- Zest$Z - (qnorm(0.975) * Zest$SE)
+Zest$LimSup <- Zest$Z + (qnorm(0.975) * Zest$SE)
+
+DatosGrafico <- Zest[, c("LimInf", "Z", "LimSup")]
+DatosGrafico <- head(DatosGrafico, 10)
+DatosGrafico$Sujeto <- as.character(1:nrow(DatosGrafico))
+DatosGrafico$Sujeto <- factor(DatosGrafico$Sujeto,
+            levels = as.character(rev(1:nrow(DatosGrafico))))
+
+ggplot(data = DatosGrafico, 
+       aes(x = Sujeto, y = Z, ymin = LimInf, ymax = LimSup)) +
+  geom_pointrange() + coord_flip() + xlab("Sujetos") + 
+  theme(text = element_text(size = PlotFont))
+```
+
+\newpage
+
+Podemos representar la precisión del instrumento para los distintos niveles de $\theta$ en términos de fiabilidad de la TCT (línea azul en el gráfico siguiente):
+
+```{r, fig.height=7}
+ggplot(Zest, aes(x = Z, y = 1 - (SE ^ 2))) +
+  geom_point(alpha = 0.2, 
+             size = 2, 
+             color = "darkblue") +
+  geom_smooth() +
+  xlab("Nivel de competencia (theta)") +
+  ylab("Coeficiente de fiabilidad") +
+  geom_hline(yintercept = 0.9, color = "green") +
+  geom_hline(yintercept = 0.8, color = "orange") +
+  theme(text = element_text(size = PlotFont))
+```
+
+Vemos que tenemos una fiabilidad excelente para valores de $\theta$ cercanos a la media, y mantenemos unos niveles de error aceptables en todo el rango de puntuaciones. La media del error estandarizado vale `r round(mean(Zest$SE), 2)`, por lo que el **coeficiente de fiabilidad** del test valdría **`r round(1 - (mean(Zest$SE) ^2), 2)`**.
+
+\newpage
+
+# Discusión
+
+Vemos que el coeficiente de fiabilidad estimado por la TCT es algo inferior al que nos proporciona la TRI. 
+
+Quizás sea porque en la curva de fiabilidad de la TRI observamos que la mayoría de la muestra se encuentra en la región en la que proporcionamos las mejores mediciones, mientras que la estimación de la TCT no puede identificar éste hecho. 
+
+Por tanto, ofrece el mismo error para todos los niveles de competencia, sobreestimando el error de los sujetos que están en torno a la media (donde medimos muy bien y está la mayoría).
+
+No obstante, las mediciones de unidimensionalidad y comunalidad son comunes para ambos modelos.
+
+En la práctica de modelos dicotómicos he realizado una comparación más detallada de los valores de los parámetros entre TCT y TRI.

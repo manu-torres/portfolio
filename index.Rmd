@@ -40,13 +40,21 @@ El análisis de los datos lo realicé con **R**, presentando los resultados en u
 
 Una práctica sobre una técnica de reducción de dimensiones.
 
-[Informe en PDF](EscalamientoMultidimensional.pdf)
+[Informe en PDF](projects/EscalamientoMultidimensional.pdf)
 
 ### Práctica TCT
 
 Una práctica del máster sobre la Teoría Clásica de los Tests.
 
 [Informe en PDF](projects/TCT.pdf)
+
+### Prácticas TRI
+
+Dos prácticas relacionadas con la Teoría de Respuesta al Ítem.
+
+[Ítems dicotómicos (PDF)](projects/TRI_DICO.pdf). En éste informe se aplica un modelo para ítems con dos opciones de respuesta (acierto/fallo).
+
+[Ítems politómicos (PDF)](projects/TRI_POLI.pdf). En éste informe se aplica un modelo para ítems con varias opciones de respuesta (una escala graduada).
 
 ## Proyectos personales
 

@@ -1,0 +1,553 @@
+---
+title: "Teoría de Respuesta al Ítem"
+author: "Manuel Torres Acosta"
+fontfamily: palatino
+output: 
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    fig_caption: yes
+fontsize: 12pt
+header-includes:
+  - \usepackage{silence}
+  - \WarningsOff
+  - \usepackage[spanish]{babel}
+  - \usepackage{graphicx}
+  - \usepackage{needspace}
+urlcolor: blue
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(warning = FALSE,
+                      message = FALSE,
+                      fig.width = 14)
+options(scipen = 999)
+library(knitr)
+library(ltm)
+library(foreign)
+library(psych)
+library(CTT)
+library(ggplot2)
+library(reshape2)
+
+Palette <- c("#9932CC", "#B22222", "#FF8C00", "#483D8B", "#228B22", "#5555ff")
+PlotFont <- 22
+idxItems <- sort(c(193, 51, 2, 45, 200, 203, 4, 46, 186, 151, 60, 68, 115, 201, 87, 180, 183, 129, 58, 66))
+
+#Las rutas son largas y no quedan bien en el pdf
+Rutas = list(
+  Datos = "/home/manuel/1.Drive/Estudios/MasterMetodologia/Medicion/R/Bases de datos para las tareas de TCT y TRI/INGLES_Datos.sav",
+  Items = "/home/manuel/1.Drive/Estudios/MasterMetodologia/Medicion/R/Bases de datos para las tareas de TCT y TRI/ItemsIngles.csv",
+  CalNum = "/home/manuel/1.Drive/Estudios/MasterMetodologia/Medicion/R/TCT/datos_originales_45ítems.sav"
+)
+
+plotInfo <- function(model){
+  Temp <- plot(model, type = "IIC", 
+               items = 0, 
+               plot = FALSE)
+  DatosGrafico <- data.frame("Ability" = rep(Temp[, 1], 2), 
+                             "Variable" = rep(c("Information", "Error estándar"), 
+                                              each = length(Temp[, 1])),
+                             "Value" = c(Temp[, 2], 1 / sqrt(Temp[, 2])))
+  
+
+  Limite <- DatosGrafico$Value[DatosGrafico$Variable == 
+                                 "Information"] + 0.2 #Limite 
+  Limite <- max(Limite)
+  
+  ggplot(DatosGrafico, aes(x = Ability, 
+                           y = Value, 
+                           color = Variable,
+                           group = Variable)) +
+    ylim(0, Limite) +
+    geom_line(size = 1.25)
+}
+```
+
+\vspace{2cm}
+
+# Tarea
+
+La tarea de ésta semana consiste en analizar las propiedades de los ítems de una prueba de inglés mediante los modelos de la TRI. Tenemos que recuperar los ítems seleccionados en la práctica anterior y aplicar las nuevas técnicas sobre ellos.
+
+\newpage
+
+## Selección de los ítems y unidimensionalidad
+
+Recuperamos los ítems de la práctica anterior, sus índices son los siguientes: 
+
+`r idxItems`
+
+```{r, results=FALSE}
+Datos <- read.spss(Rutas$Datos,
+                   to.data.frame = TRUE)
+Datos <- Datos[, idxItems]
+
+#Respuestas correctas a los items 
+Items <- read.csv(Rutas$Items,
+                  stringsAsFactors = FALSE)[idxItems, ]
+Respuestas <- Items$Respuesta
+
+#Corregimos los items
+Corregidos <- score(Datos, Respuestas,
+                    output.scored = TRUE)
+Temp <- as.data.frame(Corregidos$scored)
+Puntuaciones <- unname(Corregidos$score)
+rownames(Temp) <- names(Corregidos$score)
+Corregidos <- Temp
+
+#Aplicamos el analisis paralelo
+Unidimensionalidad <- fa.parallel.poly(Corregidos, 
+                                   fa = "pc")
+```
+
+Vemos que un solo componente basta para explicar la variabilidad de los datos, por lo que podemos asumir unidimensionalidad. De todas formas, podemos evaluar las saturaciones de los items en un modelo unifactorial para comprobar que todos los items están relacionados con el factor.
+
+```{r}
+Factor1 <- fa(Corregidos,
+              fm = "uls",
+              cor = "tet") #corr tetracorica al ser dicotomico
+Temp <- data.frame(unclass(Factor1$loadings), 
+                   h2 = Factor1$communalities, 
+                   u2 = Factor1$uniqueness)
+Temp <- Temp[rev(order(Temp$ULS1)), ]
+
+kable(Temp)
+```
+
+Podemos observar que las saturaciones más bajas las encontramos en los ítems 68 y 201, que son precisamente los mismos que en la práctica anterior hacían que disminuyese el alfa de cronbach. Los retiramos.
+
+```{r}
+idxMantener <- !colnames(Datos) %in%
+                 rownames(Temp)[Temp$ULS1 < 0.25]
+Datos <- Datos[, idxMantener]
+Respuestas <- Respuestas[idxMantener]
+Items <- Items[idxMantener, ]
+Corregidos <- Corregidos[, idxMantener]
+```
+
+\newpage
+
+## Modelo de un parámetro
+
+```{r, fig.height=6}
+fit1 <- rasch(Corregidos)
+plot(fit1)
+```
+
+En el gráfico podemos ver las curvas características de los ítems, que al ser un modelo de un parámetro se diferencian por su dificultad. El índice de discriminación es común para todos y vale `r mean(fit1$coefficients[, 2])`. La salida además nos ofrece algunas métricas de ajuste, que utilizaremos más adelante para comparar los modelos. Podemos representar también la función de información de los ítems.
+
+```{r, fig.height=6}
+plot(fit1, type = "IIC")
+```
+
+\newpage
+
+Cada ítem mide mejor a sujetos con una competencia cercana a su dificultad, de modo que ese será el máximo de cada curva. A continuación, vemos la función de información para el test completo.
+
+```{r}
+plotInfo(fit1)
+```
+
+El test mide mejor a sujetos con un nivel de competencia de en torno a 1, por lo que seguramente tendrá una dificultad moderada.
+
+Dado que hay algunos ítems con un nivel de dificultad muy bajo, los quitamos.
+
+```{r}
+idxMantener <- !colnames(Datos) %in%
+                 c("V4", "V66", "V180", "V200")
+Datos <- Datos[, idxMantener]
+Respuestas <- Respuestas[idxMantener]
+Items <- Items[idxMantener, ]
+Corregidos <- Corregidos[, idxMantener]
+fit1 <- rasch(Corregidos) #Volvemos a ajustar el modelo
+```
+
+\newpage
+
+## Modelo de dos parámetros
+
+```{r}
+#Ajustamos el modelo planteando que solo existe una dimension
+fit2 <- ltm(Corregidos ~ z1)
+
+#Comparamos el modelo frente al de 1 parametro
+anova(fit1,fit2)
+```
+
+Un modelo más complejo siempre tendrá un mejor ajuste que un modelo simple, por ello, el contraste de las devianzas que hemos aplicado penaliza la complejidad del modelo. Se podría entender como una prueba que contrasta la hipótesis de si al aumentar la complejidad del modelo se produce un incremento notable en el ajuste
+
+En nuestro caso, el resultado es estadísticamente significativo por lo que elegimos el modelo de 2 parámetros. Podemos ver que efectivamente los ítems tienen discriminaciones muy diferentes, por lo que el parámetro extra añade mucha información:
+
+```{r, fig.height=7}
+plot(fit2)
+```
+
+\newpage
+
+## Modelo de tres parámetros
+
+```{r, fig.height=7}
+fit3 <- tpm(Corregidos)
+plot(fit3)
+anova(fit2, fit3)
+```
+
+Nuevamente, el ajuste del modelo es superior. Al representar las curvas características de cada ítem vemos que los parámetros $c$ adoptan valores muy diferentes también, por lo que al mantenerlos constantes perdemos mucha información. Por tanto, seleccionamos el modelo de 3 parámetros.
+
+\newpage
+
+## Mejor modelo
+
+Dadas las pruebas realizadas concluimos que el modelo que mejor ajuste presenta en relación a su complejidad es el de tres parámetros. Por tanto, los ítems difieren en dificultad, discriminación y probabilidad de acierto al azar.
+
+A continuación, podemos realizar un análisis más detallado de los parámetros de cada ítem para el modelo elegido.
+
+```{r}
+layout(
+  matrix(c(1, 1, 1, 1, 2, 2, 2, 2),
+  nrow = 2,
+  byrow = FALSE)
+)
+
+for(i in 1:ncol(Datos)){
+  plot(fit3, items = i,
+       main = paste("Curva característica ítem", 
+                    colnames(Datos)[i]))
+  plot(fit3,type = "IIC", items = i,
+       main = paste("Función de información del ítem", 
+                    colnames(Datos)[i]))
+}
+```
+
+\newpage
+
+```{r echo=FALSE, fig.height=6}
+par(mfrow = c(1, 1))
+plot(fit3)
+plot(fit3, type = "IIC")
+```
+
+Representamos la función de información del test completo. El test mide mejor a sujetos con un nivel de competencia de entorno a 1.5-2, dado que los ítems miden mejor a los sujetos con un nivel de competencia parecido a su dificultad, podemos concluir que es algo difícil.
+
+```{r, echo=FALSE}
+plotInfo(fit3)
+```
+
+Podemos obtener además una tabla con todos los parámetros del modelo para cada ítem.
+
+```{r, fig.height=7}
+Temp <- data.frame(summary(fit3)$coefficients)
+Temp$coeff <- rownames(Temp)
+Temp$coeffCate <- sub("\\..*", "", rownames(Temp))
+Temp2 <- as.list(unique(Temp$coeffCate))
+Temp2 <- sapply(Temp2, function(x){
+  Temp$value[Temp$coeffCate == x]
+})
+Parametros <- data.frame(Temp2)
+rownames(Parametros) <- colnames(Datos)
+colnames(Parametros) <- unique(Temp$coeffCate)
+
+kable(round(Parametros, 4))
+```
+
+\newpage
+
+### Ajuste absoluto del modelo
+
+En los apartados anteriores comparabamos el ajuste del modelo de tres parámetros con los de uno y dos para ver si el incremento en la complejidad del modelo produce un incremento suficiente del ajuste, es decir evaluamos su ajuste en relación con los otros modelos.
+
+También podemos evaluar el ajuste absoluto del modelo.
+
+```{r}
+ajuste <- item.fit(fit3,
+                   simulate.p.value = TRUE, 
+                   B = 20)
+
+Temp <- round(unname(ajuste$p.values), 3)
+Resumen <- cbind(
+  data.frame(
+    Item = colnames(Datos)[1:((ncol(Datos) / 2))],
+    Desajuste = Temp[1:((ncol(Datos) / 2))]
+    ),
+  data.frame(
+    Item = colnames(Datos)[((ncol(Datos) + 1) / 2):ncol(Datos)],
+    Desajuste = Temp[((ncol(Datos) + 1) / 2):ncol(Datos)]
+  )
+)
+
+kable(Resumen)
+```
+
+En la tabla vemos los p-valores asociados al contraste que determina si el desajuste del ítem es significativo. En todos los casos observamos p-valores altos, por lo que mantenemos la hipótesis nula (**el desajuste no es significativo**).
+
+\newpage
+
+### Estimación de puntuaciones
+
+A continuación, estimamos las puntuaciones para los sujetos en el rasgo ($\theta$). Las representamos en un gráfico relacionandolas con su error de estimación
+
+```{r, fig.height=6}
+Puntuaciones <- ltm::factor.scores(fit3,
+                                   Corregidos)
+Zest <- matrix(0, nrow(Datos), 2)
+Zest[, 1] <- Puntuaciones$score.dat$z1
+Zest[, 2] <- Puntuaciones$score.dat$se.z1
+Zest <- data.frame(Zest)
+colnames(Zest) <- c("Z","SE")
+
+#Representamos los errores de estimacion
+ggplot(Zest, aes(x = Z, y = SE)) +
+  geom_point(alpha = 0.2, 
+             size = 2, 
+             color = "darkblue") +
+  geom_smooth() +
+  xlab("Nivel de competencia (theta)") +
+  ylab("Error de estimación estandarizado") +
+  geom_hline(yintercept = 0.3, color = "orange") +
+  geom_hline(yintercept = 0.5, color = "red") +
+  theme(text = element_text(size = PlotFont))
+```
+
+Observamos que en los niveles bajos de competencia cometemos mucho error (debido a que la dificultad del test es más elevada). La línea horizontal naranja representaría un nivel de precisión aceptable. Valores de error por encima de la misma empienzan a ser altos. Cualquier valor que esté por encima de la línea roja implica que esa estimación es bastante imprecisa.
+
+\newpage
+
+También podemos construir intervalos de confianza al 95% entorno a las puntuaciones.
+
+```{r echo=FALSE}
+Zest$LimInf <- Zest$Z - (qnorm(0.975) * Zest$SE)
+Zest$LimSup <- Zest$Z + (qnorm(0.975) * Zest$SE)
+
+DatosGrafico <- Zest[, c("LimInf", "Z", "LimSup")]
+DatosGrafico <- head(DatosGrafico, 10)
+DatosGrafico$Sujeto <- as.character(1:nrow(DatosGrafico))
+DatosGrafico$Sujeto <- factor(DatosGrafico$Sujeto,
+            levels = as.character(rev(1:nrow(DatosGrafico))))
+
+ggplot(data = DatosGrafico, 
+       aes(x = Sujeto, y = Z, ymin = LimInf, ymax = LimSup)) +
+  geom_pointrange() + coord_flip() + xlab("Sujetos") + 
+  theme(text = element_text(size = PlotFont))
+```
+
+Podemos representar la precisión del instrumento para los distintos niveles de $\theta$ en términos de fiabilidad de la TCT (línea azul en el gráfico siguiente):
+
+```{r, fig.height=7}
+ggplot(Zest, aes(x = Z, y = 1 - (SE ^ 2))) +
+  geom_point(alpha = 0.2, 
+             size = 2, 
+             color = "darkblue") +
+  geom_smooth() +
+  xlab("Nivel de competencia (theta)") +
+  ylab("Coeficiente de fiabilidad") +
+  geom_hline(yintercept = 0.9, color = "green") +
+  geom_hline(yintercept = 0.8, color = "orange") +
+  geom_hline(yintercept = 0.7, color = "red") +
+  theme(text = element_text(size = PlotFont))
+```
+
+\newpage
+
+### Comentarios sobre el modelo
+
+En base a éstos datos, son pertinentes las siguientes observaciones:
+
+- El `r round((nrow(Parametros[Parametros$Gussng > 0.25, ]) / nrow(Parametros)) * 100, 0)`% de los ítems tienen parámetros de adivinación superiores a lo que cabría esperar por azar. 
+    - Dado el número de alternativas, la probabilidad de acierto por azar es del 20%, pero éstos ítems tienen unos valores superiores al 25%, que sería lo esperable para ítems con 4 alternativas de respuesta. 
+    - Es posible que en éstos casos los distractores no estén funcionando correctamente.
+- Todos los índices de dificultad son mayores que cero. Durante el proceso, quitamos algunos ítems por ser demasiado fáciles, ya que no son adecuados para ésta muestra en particular. Sin embargo, viendo la función de información del test quizás no sería conveniente utilizar éste criterio para eliminar los ítems.
+  - El test resultante mide muy bien a los sujetos con un nivel de competencia medio-alto, pero la función de información presenta un grado de apuntamiento muy elevado. La cola izquierda en particular incluye niveles de competencia bastante frecuentes, estando el nivel medio ($\theta$ = 0) muy próximo a la misma con unos niveles de información relativamente bajos. Por tanto, a medida que desciende el nivel de competencia por debajo de cero, las mediciones van siendo cada vez más imprecisas hasta llegar a unos niveles de error muy altos.
+- En vista a éstos resultados queda patente que el criterio para incluir o no un ítem quizás no deba ser simplemente si es demasiado fácil o difícil, ya que conviene que todos los niveles de dificultad estén bien representados en un banco de ítems, así obtendremos un test que ofrece buenas mediciones en rangos más amplios de competencia.
+    - Por tanto sería coveniente añadir ítems con dificultades diferentes, especialmente más bajas.
+    - Lógicamente, la dificultad de los ítems debe ir siempre en función de la población sobre la que se aplicará. En nuestro caso, sería interesante añadir ítems con dificultades entre -1.5 y 0, y algunos más con dificultades cercanas a 3 para discriminar mejor entre los sujetos más competentes.
+- En relación con los índices de discriminación, se observa que la mayoría son adecuados. 
+    - Lo ideal es contar con ítems muy discriminativos y con niveles de dificultad variados, de ésta forma, podremos mantener un buen nivel de precisión para sujetos con distintos niveles de competencia.
+- Nuestro test posee una precisión excelente para sujetos con niveles de competencia en torno a 1.5, y aceptable entre valores de 0.5 y 2.5. No obstante, por debajo de 0 presenta unos niveles de fiabilidad excesivamente bajos.
+    - Queda claro que hacen falta bastantes ítems con dificultades que se encuentren por debajo de 0.5 y algunos por encima de 2.5 para corregir los problemas de precisión en éstos niveles de competencia.
+
+\newpage
+
+# Tarea voluntaria
+
+## Comparación TCT vs TRI
+
+```{r}
+#Obtenemos los indicadores de la TRI
+ModelosTRI <- list(fit1, fit2, fit3)
+
+obtenerCoeficientes <- function(model){
+  Temp <- data.frame(summary(model)$coefficients)
+  Temp$coeff <- rownames(Temp)
+  Temp$coeffCate <- sub("\\..*", "", rownames(Temp))
+  Temp2 <- as.list(unique(Temp$coeffCate))
+  Temp2 <- sapply(Temp2, function(x){
+    Temp$value[Temp$coeffCate == x]
+  })
+  return(Temp)
+}
+
+Temp <- lapply(ModelosTRI, obtenerCoeficientes)
+for(i in 1:length(Temp)){
+  Temp[[i]]$Model = i
+}
+
+#Parametros de los tres modelos de TRI
+TRI <- (do.call(rbind, Temp))
+rownames(TRI) <- NULL
+
+#A continuación obtenemos los parametros de la TCT
+TCT <- itemAnalysis(Corregidos)
+TCT <- TCT$itemReport
+
+#Los juntamos en un mismo data frame
+n <- nrow(Items) - 1
+Temp <- data.frame(
+  DiffTRI = TRI$value[TRI$coeffCate == "Dffclt"],
+  DiscrTRI = c(rep(TRI$value[TRI$coeffCate == "Dscrmn"][1], n),
+               TRI$value[TRI$coeffCate == "Dscrmn"]),
+  Model = TRI$Model[TRI$coeffCate == "Dffclt"]
+)
+Temp$DiffTCT <- rep(TCT$itemMean, nrow(Temp) / nrow(TCT))
+Temp$DiscrTCT <- rep(TCT$pBis, nrow(Temp) / nrow(TCT))
+TCTvsTRI <- Temp
+```
+
+\newpage
+
+En la TCT el índice de dificultad de define como la proporción de sujetos que aciertan el item ^[Por tanto, quizás sea más adecuado llamarlo índice de facilidad]. En TRI, hace referencia al nivel de $\theta$ que hace que la probabilidad de acertar el ítem sea del 50%.
+
+El indicador de la TCT se hace más pequeño cuanto más difícil es el ítem (menos sujetos lo aciertan), mientras que el de TRI se hace más grande (es necesario un nivel de competencia mayor para tener una probabilidad de acierto del 50%). Por tanto, cabe esperar una correlación próxima a 1 y con signo negativo.
+
+En la siguiente tabla podemos ver las correlaciones entre los índices de dificultad y discriminación de los tres modelos de TRI y los mismos valores de la TRI.
+
+```{r echo=FALSE}
+library(dplyr)
+Resumen <- Temp %>%
+  group_by(Model) %>%
+  summarise(
+    CorrDiff = cor(DiffTRI, DiffTCT),
+    CorrDiscr = cor(DiscrTRI, DiscrTCT)
+  ) %>%
+  data.frame()
+Resumen$Model <- paste(Resumen$Model, "parámetros")
+kable(Resumen)
+```
+
+En cada fila tenemos las correlaciones entre uno de los modelos de la TRI y la TCT. La primera columna muestra las correlaciones entre los índices de dificultad y la segunda entre los índices de discriminación. Podemos ver que en la segunda columna no hay valor para el modelo de 1 parámetro ya que el valor del parámetro es el mismo para todos los ítems.
+
+Para el parámetro de dificultad encontramos el resultado esperado: correlaciones altas y con signo negativo. Vemos que se van haciendo algo más pequeñas (en valor absoluto) conforme aumenta el número de parámetros, presumiblemente debido a los cambios en las curvas características de los ítems. 
+
+Dado que comprobamos que el ajuste de los datos mejora al añadir parámetros, ésto implica que la TCT no llega a ajustar demasiado bien (los valores más precisos serían los del modelo de 3 parámetros). Aun con todo, la TCT ofrece unas aproximaciones bastante correctas.
+
+\newpage
+
+El caso de los índices de discriminación es más curioso, ya que la correlación es muy alta para el modelo de 1 parámetro y casi nula para el de 3. Examinando las curvas características de los ítems para los dos modelos nos damos cuenta de que el tener en cuenta el parámetro de adininación cambia de forma considerable muchas de las curvas. Podemos poner como ejemplos los ítems 45 y 203.
+
+```{r echo=FALSE, fig.height=8}
+layout(
+  matrix(c(1, 1, 2, 2, 3, 3, 4, 4),
+  nrow = 2,
+  byrow = TRUE)
+)
+
+plot(fit2, items = 2, 
+     main = "Curva caract. item 45 (Modelo 2 parámetros)")
+plot(fit3, items = 2, 
+     main = "Curva caract. item 45 (Modelo 3 parámetros)")
+plot(fit2, items = 14, 
+     main = "Curva caract. item 203 (Modelo 2 parámetros)")
+plot(fit3, items = 14, 
+     main = "Curva caract. item 203 (Modelo 3 parámetros)")
+
+par(mfrow = c(1, 1))
+```
+
+Sin tener en cuenta la probabilidad de adivinación los ítems tienen una discriminación muy baja. Una vez que lo tenemos en cuenta la discriminación aumenta considerablemente. Como los ítems tienen una probabilidad de acierto por azar muy alta no son capaces de discriminar muy bien entre sujetos competentes e incompetentes (los incompetentes los aciertan por azar). 
+
+Al controlar la influencia del azar, nos damos cuenta sí tienen una buena discriminación, pero tienen una probabilidad base de acierto alta, incluso para sujetos con bajo nivel de competencia. 
+
+Por tanto, podemos asumir que los valores correctos de discriminación son los del modelo de tres parámetros de la TRI. Para nuestro test, la TCT no ofrece unas buenas estimaciones de la discriminación. Ésto se debe al hecho que comentamos anteriormente. Para un tercio de nuestros ítems los distractores no funcionan muy bien, por lo que la probabiliad de acierto por azar es muy alta.
+
+Si quisieramos utilizar la TCT, deberíamos prestar especial atención a éste hecho mediante el análisis de distractores, ya que el indicador que proporciona no tiene en cuenta la probabilidad de acierto por azar. No obsante, se podría corregir para tenerlo en cuenta.
+
+## Invarianza de medida
+
+Podemos comprobar si los valores obtenidos para los parámetros de los ítems se mantienen independientemente de los sujetos. Para ello, podemos dividir la muestra en dos mitades y ver si estimamos los mismos parámetros.
+
+Construimos una simulación que crea las muestras, ajusta los modelos y devuelve las correlaciones entre los parámetros. Para aumentar el rendimiento podemos usar la libería parallel, que nos permite utilizar todos los núcleos del procesador para realizar los cálculos en paralelo.
+
+```{r}
+n <- 100 #Veces que ejecutamos la funcion
+Semillas <- sample(1:1000, n, replace = FALSE)
+
+AjustaModelos <- function(x){
+  set.seed(x) #La generacion de numeros al azar el paralelo
+  #da problemas, definimos la semilla de antemano
+  #Aplicamos un shuffle sobre los datos
+  Temp <- sample(1:nrow(Corregidos), replace = FALSE)
+  Temp2 <- Corregidos[Temp, ]
+  
+  #Creamos las dos muestras y las metemos en una lista
+  DosMuestras <- list(
+    g1 = Temp2[1:ceiling(nrow(Temp2) / 2), ],
+    g2 = Temp2[(ceiling(nrow(Temp2) / 2) - 1): nrow(Temp2), ]
+  )
+  
+  Coef <- lapply(DosMuestras, function(df){
+    fit <- ltm(df ~ z1)
+    Temp <- data.frame(summary(fit)$coefficients)
+    Temp$coeff <- rownames(Temp)
+    Temp$coeffCate <- sub("\\..*", "", rownames(Temp))
+    Temp2 <- as.list(unique(Temp$coeffCate))
+    Temp2 <- sapply(Temp2, function(x){
+    Temp$value[Temp$coeffCate == x]
+    })
+    Parametros <- data.frame(Temp2)
+    rownames(Parametros) <- colnames(Datos)
+    colnames(Parametros) <- unique(Temp$coeffCate)
+    return(Parametros)
+  })
+  Coef <- do.call(cbind, Coef)
+  return(c(cor(Coef$g1.Dffclt, Coef$g2.Dffclt),
+           cor(Coef$g1.Dscrmn, Coef$g2.Dscrmn)))
+}
+```
+
+\newpage
+
+```{r}
+library(parallel)
+Ncores <- round(detectCores()/2, 0)
+if(Ncores < 1) Ncores = 1
+
+#Creamos un cluster de procesamiento
+clust <- makeCluster(Ncores, type = "FORK")
+
+#Aplicamos la funcion en paralelo
+Resultados <- t(parSapply(clust, Semillas, AjustaModelos))
+stopCluster(clust) #Detenemos el cluster
+colnames(Resultados) <- c("CorrDiff", "CorrDiscrim")
+```
+
+\newpage
+
+En las siguientes tablas podemos ver los cuantiles para las correlaciones obtenidas en la simulación. En primer lugar para las correlaciones entre los parámetros de dificultad. La correlación media obtenida en las `r n` iteraciones fue de **`r round(mean(Resultados[, "CorrDiff"]), 3)`**
+
+```{r}
+round(quantile(Resultados[, "CorrDiff"]), 3)
+```
+
+Ahora para los parámetros de discriminación. La correlación media obtenida fue **`r round(mean(Resultados[, "CorrDiscrim"]), 3)`**
+
+```{r}
+round(quantile(Resultados[, "CorrDiscrim"]), 3)
+```
+
+Encontramos que sí que se puede asumir que la dificultad permanece constante entre muestras (el 75% de las correlaciones están por encima de `r unname(round(quantile(Resultados[, "CorrDiff"], 0.25), 3))`), no se puede decir lo mismo de los parámetros de discriminación (el 75% de las correlaciones están por debajo de (`r unname(round(quantile(Resultados[, "CorrDiscrim"], 0.75), 3))`).
+
+Por tanto la invarianza de medida aplica más para el parámetro de dificultad que para la discriminación, pero en ningún caso llega a ser perfecta.
+
