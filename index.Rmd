@@ -34,7 +34,7 @@ Los datos se almacenaban en una base de datos de **SQLite**, que resultó ser pe
 
 El análisis de los datos lo realicé con **R**, presentando los resultados en un informe de R markdown. Realicé un análisis descriptivo muy completo mediante **gráficos interactivos**, además probé varias técnicas de clusterización para ver si se podían realizar clasificaciones de los artículos de forma automática. También, desarrollé un método que a partir de unas métricas de similaridad permite crear redes temáticas.
 
-[Informe](projects/TFG_MineriaTextoCompleto.html)
+[Informe completo](projects/TFG_MineriaTextoCompleto.html), click  [aquí](projects/TFG_MineriaTextoCompleto.html#Resultados) para ir directamente a los resultados, en donde se pueden ver los gráficos.
 
 ### Práctica TCT
 
@@ -58,19 +58,15 @@ En la página del grupo Louis Vuitton encontré un comunicado para accionistas, 
 
 ### Bolsa
 
-En un principio simplemente estaba buscando un tutorial para aprender a utilizar redes neuronales de tipo LSTM, y en el ejemplo utilizaban éstos modelos para predecir el precio de unas acciones. Desde entonces, he estado investigando bastante sobre el tema ya que es un problema muy interesante.
-
 He construido un sistema que va descargando automáticamente los precios y datos financieros de **más de 500 empresas** e incorpora toda ésta información en una base de datos de **SQLite**. Una vez que los datos están descargados, utilizo **R** y **python** para realizar toda clase de análisis y simulaciones sobre los mismos.
 
 A continuación podemos ver algunos de los proyectos relacionados con éste tema.
 
 #### Generación de cuadros de mando
 
-Hay muchas páginas que permiten consultar la información financiera de las acciones, pero yo he creado un sistema que me permite generar mis propios informes personalizados. Utilizando la librería **flexdashboard** he creado unos cuadros de mando interactivos que recogen todo tipo de información sobre las acciones.
+He desarrollado un script al que se le pasa el código de una empresa (*ticker*), y genera un cuadro de mando con **flexdashboard** con mucha información sobre la misma: gráficos que representan el precio junto a las bandas de bollinger (y con los puntos coloreados por el RSI), información sobre el pago de dividendos...
 
-Se le puede especificar el código de una empresa, y un script descarga los datos más recientes para esa empresa y construye el cuadro de mando. En el mismo, podemos ver entre otras cosas un gráfico con las bandas de Bollinger, gráficos de velas o información sobre el pago de dividendos.
-
-[Informe](projects/DashboardAccion.html), [Código](https://github.com/manu-torres/portfolio/blob/main/projects/DashboardAccion.Rmd)
+[Dashboard](projects/DashboardAccion.html), [Código](https://github.com/manu-torres/portfolio/blob/main/projects/DashboardAccion.Rmd)
 
 <br>
 

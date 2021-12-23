@@ -440,6 +440,9 @@ display: block;
 margin: 0 auto;
 max-height: 100%;
 max-width: 100%;
+}
+a {
+text-decoration: underline;
 }</style></p>
 <p><br></p>
 <p>En éste documento se pueden visualizar algunos de los proyectos que he realizado durante mis estudios o por mi cuenta para ampliar mis habilidades. No se incluyen proyectos de mi vida profesional por cuestiones de confidencialidad.</p>
@@ -454,7 +457,7 @@ Se recomienda abrir los informes en una pestaña nueva
 <p>Para ello, en primer lugar tenía que descargar los artículos de la base de datos, lo que implicaba interactuar con la API. Ésta tarea la desarrollé en <strong>python</strong>, ya que ofrece más facilidades para capturar excepciones y errores. Además, python tiene mejor soporte para trabajar con ficheros json ya que uno de sus tipos nativos (el diccionario) se ajusta muy bien a ésta estructura de datos.</p>
 <p>Los datos se almacenaban en una base de datos de <strong>SQLite</strong>, que resultó ser perfecta para el proyecto.</p>
 <p>El análisis de los datos lo realicé con <strong>R</strong>, presentando los resultados en un informe de R markdown. Realicé un análisis descriptivo muy completo mediante <strong>gráficos interactivos</strong>, además probé varias técnicas de clusterización para ver si se podían realizar clasificaciones de los artículos de forma automática. También, desarrollé un método que a partir de unas métricas de similaridad permite crear redes temáticas.</p>
-<p><a href="projects/TFG_MineriaTextoCompleto.html">Informe</a></p>
+<p><a href="projects/TFG_MineriaTextoCompleto.html">Informe completo</a>, click <a href="projects/TFG_MineriaTextoCompleto.html#Resultados">aquí</a> para ir directamente a los resultados, en donde se pueden ver los gráficos.</p>
 </div>
 <div id="práctica-tct" class="section level3">
 <h3>Práctica TCT</h3>
@@ -476,14 +479,12 @@ Se recomienda abrir los informes en una pestaña nueva
 </div>
 <div id="bolsa" class="section level3">
 <h3>Bolsa</h3>
-<p>En un principio simplemente estaba buscando un tutorial para aprender a utilizar redes neuronales de tipo LSTM, y en el ejemplo utilizaban éstos modelos para predecir el precio de unas acciones. Desde entonces, he estado investigando bastante sobre el tema ya que es un problema muy interesante.</p>
 <p>He construido un sistema que va descargando automáticamente los precios y datos financieros de <strong>más de 500 empresas</strong> e incorpora toda ésta información en una base de datos de <strong>SQLite</strong>. Una vez que los datos están descargados, utilizo <strong>R</strong> y <strong>python</strong> para realizar toda clase de análisis y simulaciones sobre los mismos.</p>
 <p>A continuación podemos ver algunos de los proyectos relacionados con éste tema.</p>
 <div id="generación-de-cuadros-de-mando" class="section level4">
 <h4>Generación de cuadros de mando</h4>
-<p>Hay muchas páginas que permiten consultar la información financiera de las acciones, pero yo he creado un sistema que me permite generar mis propios informes personalizados. Utilizando la librería <strong>flexdashboard</strong> he creado unos cuadros de mando interactivos que recogen todo tipo de información sobre las acciones.</p>
-<p>Se le puede especificar el código de una empresa, y un script descarga los datos más recientes para esa empresa y construye el cuadro de mando. En el mismo, podemos ver entre otras cosas un gráfico con las bandas de Bollinger, gráficos de velas o información sobre el pago de dividendos.</p>
-<p><a href="projects/DashboardAccion.html">Informe</a>, <a href="https://github.com/manu-torres/portfolio/blob/main/projects/DashboardAccion.Rmd">Código</a></p>
+<p>He desarrollado un script al que se le pasa el código de una empresa (<em>ticker</em>), y genera un cuadro de mando con <strong>flexdashboard</strong> con mucha información sobre la misma: gráficos que representan el precio junto a las bandas de bollinger (y con los puntos coloreados por el RSI), información sobre el pago de dividendos…</p>
+<p><a href="projects/DashboardAccion.html">Dashboard</a>, <a href="https://github.com/manu-torres/portfolio/blob/main/projects/DashboardAccion.Rmd">Código</a></p>
 <p><br></p>
 <p><br></p>
 </div>
