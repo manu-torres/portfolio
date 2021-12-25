@@ -56,7 +56,7 @@ Una práctica del máster sobre la Teoría Clásica de los Tests.
 
 Dos prácticas relacionadas con la Teoría de Respuesta al Ítem.
 
-[Ítems dicotómicos (PDF)](projects/TRI_DICO.pdf). En éste informe se aplica un modelo para ítems con dos opciones de respuesta (acierto/fallo).
+[Ítems dicotómicos (PDF)](projects/TRI_DICO.pdf). En éste informe se aplica un modelo para ítems con dos opciones de respuesta (acierto/fallo). Ajustamos los modelos de 1, 2 y 3 parámetros, evaluando el ajuste relativo y absoluto de cada modelo. Comparamos las mediciones de la TRI con las de la TCT y comprobamos si efectivamente conseguimos la invarianza de medida.
 
 ![](images/testReliability.png)
 
