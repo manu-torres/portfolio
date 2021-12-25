@@ -68,6 +68,14 @@ En ésta práctica teníamos que estudiar el comportamiento del análisis factor
 
 [Informe en PDF](projects/SimulacionFactorialExploratorio.pdf)
 
+### Práctica TDS
+
+Una práctica sobre la detección de señales mediante la cual estudiamos el patrón de respuesta de varios observadores.
+
+![](images/plotTDS.png)
+
+[Informe en PDF](projects/TDS.pdf)
+
 ## Proyectos personales
 
 ### Informe de ventas Target
