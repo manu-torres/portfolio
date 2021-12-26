@@ -70,7 +70,7 @@ En ésta práctica teníamos que estudiar el comportamiento del análisis factor
 
 ### Práctica TDS
 
-Una práctica sobre la detección de señales mediante la cual estudiamos el patrón de respuesta de varios observadores.
+Una práctica sobre la detección de señales mediante la cual estudiamos el patrón de respuesta de varios observadores. También he desarrollado una [implementación en python](https://github.com/manu-torres/portfolio/blob/main/projects/tdsPlot.py), que utilizo para visualizar el rendimiento de algunos modelos de clasificación.
 
 [Informe en PDF](projects/TDS.pdf)
 
