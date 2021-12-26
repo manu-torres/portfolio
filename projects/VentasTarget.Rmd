@@ -1,7 +1,10 @@
 ---
 title: "Análisis de las ventas"
 author: "Manuel Torres Acosta"
-output: html_document
+output: 
+  html_document:
+    self_contained: false
+    lib_dir: libs
 ---
 
 
@@ -181,7 +184,7 @@ VentasValorPretty <- format(sum(df$ValorVendido), big.mark = ".")
 
 <br>
 
-![](target-logo.png){}
+![](../images/target-logo.png){}
 
 <br>
 

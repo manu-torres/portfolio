@@ -5,6 +5,8 @@ output:
   html_document:
     highlight: null
     mathjax: null
+    self_contained: false
+    lib_dir: libs
 toc-title: "Sections"
 editor_options: 
   chunk_output_type: console

@@ -4,6 +4,8 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows
     vertical_layout: fill
+    self_contained: false
+    lib_dir: libs
 ---
 
 <!-- hacemos la fuente mas grande -->
