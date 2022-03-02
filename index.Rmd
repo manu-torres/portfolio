@@ -70,7 +70,7 @@ En ésta práctica teníamos que estudiar el comportamiento del análisis factor
 
 ### Simulación Análisis Factorial Confirmatorio
 
-Otra práctica de simulación de temática libre, en éste caso para el análisis factorial confirmatorio. En éste caso estudié el cambio en los indicadores de ajuste/desajuste a medida que se van introduciendo errores de especificación en el modelo. 
+Otra práctica de simulación de temática libre, en éste caso para el análisis factorial confirmatorio. Estudié el cambio en los indicadores de ajuste/desajuste a medida que se van introduciendo errores de especificación en el modelo. 
 
 La segunda parte de la práctica consistía en realizar un análisis factorial multigrupo para determinar si existe invarianza de medida en un instrumento.
 
@@ -86,7 +86,9 @@ Una práctica sobre la detección de señales mediante la cual estudiamos el pat
 
 ### Detección de contornos
 
-En ésta práctica de Tecnología del Conocimiento conseguimos marcar los contornos de algunas imágenes. En principio el material estaba pensado para realizar los ejercicios con Matlab, pero se podía utilizar cualquier otra herramienta. En mi caso, decidí trabajar con R.
+En ésta práctica de Tecnología del Conocimiento conseguimos marcar los contornos de algunas imágenes. También se realizan algunas tareas de procesamiento de las imágenes comunes en la visión artificial.
+
+En principio el material estaba pensado para realizar los ejercicios con Matlab, pero se podía utilizar cualquier otra herramienta. En mi caso, decidí trabajar con R.
 
 [Informe en PDF](projects/DeteccionContornos.pdf)
 
