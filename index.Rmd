@@ -92,6 +92,12 @@ En principio el material estaba pensado para realizar los ejercicios con Matlab,
 
 [Informe en PDF](projects/DeteccionContornos.pdf)
 
+### Árboles de decisión
+
+Una práctica en la que se ajusta un árbol de decisión para pronosticar la diabetes.
+
+[Informe en PDF](projects/ArbolDecision.pdf)
+
 ## Proyectos personales
 
 ### Informe de ventas Target
