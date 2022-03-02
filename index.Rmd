@@ -84,6 +84,12 @@ Una práctica sobre la detección de señales mediante la cual estudiamos el pat
 
 ![](images/plotTDS.png)
 
+### Detección de contornos
+
+En ésta práctica de Tecnología del Conocimiento conseguimos marcar los contornos de algunas imágenes. En principio el material estaba pensado para realizar los ejercicios con Matlab, pero se podía utilizar cualquier otra herramienta. En mi caso, decidí trabajar con R.
+
+[Informe en PDF](projects/DeteccionContornos.pdf)
+
 ## Proyectos personales
 
 ### Informe de ventas Target
