@@ -72,7 +72,7 @@ En ésta práctica teníamos que estudiar el comportamiento del análisis factor
 
 Otra práctica de simulación de temática libre, en éste caso para el análisis factorial confirmatorio. En éste caso estudié el cambio en los indicadores de ajuste/desajuste a medida que se van introduciendo errores de especificación en el modelo. 
 
-La segunda parte de la práctica consistía en realizar un análisis factorial multigrupo para determinar si existe invarianza de medida en un instrumento
+La segunda parte de la práctica consistía en realizar un análisis factorial multigrupo para determinar si existe invarianza de medida en un instrumento.
 
 [Informe en PDF](projects/SimulacionFactorialConfirmatorio.pdf)
 
