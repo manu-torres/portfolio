@@ -5,32 +5,33 @@
 }
   
 body { /* Normal  */
-font-size: 18px;
+    font-size: 18px;
 }
 
+
 b, strong {
-color: #337ab7;
+    color: #337ab7;
 }
 
 .table {
-font-size: 14px;
+    font-size: 14px;
 }
 
 .subtitle {
-text-align: center;
-color: #337ab7;
+    text-align: center;
+    color: #337ab7;
 }
 
 .annot {
-border-left: #337ab7 6px solid;
-background: #ebebeb;
-border-radius: 6px;
-padding: 10px;
-margin-top: 15px;
-margin-bottom: 10px;
-display: inline-block;
-position: right;
-float: right;
+    border-left: #337ab7 6px solid;
+    background: #ebebeb;
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    display: inline-block;
+    position: right;
+    float: right;
 }
 
 .annot strong {

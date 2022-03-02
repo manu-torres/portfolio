@@ -1,0 +1,84 @@
+---
+title: "Evaluación rendimiento modelos"
+output: 
+  html_document: 
+    df_print: kable
+    toc: true
+    toc_depth: 3
+    toc_float: true
+---
+
+<style type="text/css">
+
+.section {
+  /* evita que el texto se meta en las anotaciones */
+  clear: right;
+}
+
+body { /* Normal  */
+  font-size: 18px;
+}
+
+b, strong {
+  color: #337ab7;
+}
+
+.table {
+  font-size: 14px;
+}
+
+.author {
+  text-align: right;
+  color: #337ab7;
+}
+
+.annot {
+  border-left: #337ab7 6px solid;
+  background: #ebebeb;
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 15px;
+  margin-bottom: 10px;
+  display: inline-block;
+  position: right;
+  float: right;
+}
+
+.annot strong {
+  font-size: 1.3em;
+  font-weight: bold;
+  color: #337ab7;
+}
+
+h1, h2 {
+  text-align: center;
+  color: #337ab7;
+  margin-top: 30px;
+  margin-bottom: 20px;
+}
+
+h3, h4 {
+  color: #337ab7;
+  margin-top: 30px;
+  margin-bottom: 20px;
+}
+
+</style>
+
+```{r setup, include=FALSE}
+rm(list=ls())
+knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
+```
+
+## Seccion
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus accumsan urna id leo ornare interdum. Mauris id accumsan quam. Vestibulum sagittis mi eget pharetra pharetra. Nunc pulvinar porta justo, nec vulputate ex consectetur nec. Morbi vel ante velit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Sed sit amet ligula mattis, ultrices nulla nec, dignissim dui. Praesent ut ullamcorper mi.
+
+<p class="annot">Una anotación</p>
+
+### Apartado
+
+```{r, fig.width = 40, fig.height = 10}
+plot(rnorm(1000))
+```

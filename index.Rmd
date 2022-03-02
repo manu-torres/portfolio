@@ -22,7 +22,7 @@ En éste documento se pueden visualizar algunos de los proyectos que he realizad
 
 <p class="annot">Se recomienda abrir los informes en una pestaña nueva</p>
 
-## Proyectos académicos
+## Proyectos académicos 
 
 ### Trabajo de fin de grado: Minería de textos
 
@@ -67,6 +67,14 @@ Dos prácticas relacionadas con la Teoría de Respuesta al Ítem.
 En ésta práctica teníamos que estudiar el comportamiento del análisis factorial exploratorio realizando algunas simulaciones de temática libre. Yo escogí estudiar el efecto del tamaño muestral y el valor de los pesos factoriales simulados sobre la calidad de la recuperación de los pesos y los valores del MSA (de la técnica KMO).
 
 [Informe en PDF](projects/SimulacionFactorialExploratorio.pdf)
+
+### Simulación Análisis Factorial Confirmatorio
+
+Otra práctica de simulación de temática libre, en éste caso para el análisis factorial confirmatorio. En éste caso estudié el cambio en los indicadores de ajuste/desajuste a medida que se van introduciendo errores de especificación en el modelo. 
+
+La segunda parte de la práctica consistía en realizar un análisis factorial multigrupo para determinar si existe invarianza de medida en un instrumento
+
+[Informe en PDF](projects/SimulacionFactorialConfirmatorio.pdf)
 
 ### Práctica TDS
 
